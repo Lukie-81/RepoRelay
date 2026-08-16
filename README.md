@@ -329,4 +329,4 @@ verification matrix.
 ## License
 
 [MIT](LICENSE). The license file preserves the upstream DevSpace copyright
-notice alongside the RepoRelay contributors notice.
+notice alongside the RepoRelay copyright notice.
