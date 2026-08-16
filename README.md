@@ -83,66 +83,47 @@ AI / MCP client (e.g. ChatGPT Web)
 ## Quick start
 
 Windows 10/11 with PowerShell is the validated platform for the lifecycle
-scripts below; the test suite also runs on Linux and macOS in CI. If your
-execution policy blocks `npm.ps1`, use `npm.cmd`.
+scripts; the `quickstart` command and the test suite also run on Linux and
+macOS in CI. If your execution policy blocks `npm.ps1`, use `npm.cmd`.
 
-### 1. Install and verify
+### 1. Install
 
 ```powershell
 git clone https://github.com/Lukie-81/RepoRelay.git
 Set-Location RepoRelay
 npm ci
-npm run verify:release
-node dist/cli.js doctor
+npm run build
 ```
 
-`npm run verify:release` runs type checking, the full test suite, the
-authenticated bridge runtime test, and a production build.
+`node dist/cli.js doctor` reports the active Node, Git, and bridge
+configuration without printing secret values.
 
-### 2. Prepare the approved repository
-
-Choose one existing repository directory — never a drive root, your user
-profile, or anything containing credentials the AI should not read. Preview the
-handoff layout, then apply it:
+### 2. Approve one repository and start the bridge
 
 ```powershell
-.\ops\Initialize-DevSpaceChatGPTHandoff.ps1 `
-  -RepositoryRoot "C:\path\to\approved-repository"
-
-.\ops\Initialize-DevSpaceChatGPTHandoff.ps1 `
-  -RepositoryRoot "C:\path\to\approved-repository" `
-  -Apply
+node dist/cli.js quickstart "C:\path\to\approved-repository"
 ```
 
-This creates the four fixed `.ai-handoff` files. If the repository already has
-an `AGENTS.md`, the script fails closed unless you explicitly pass
-`-AppendAgentInstructions`.
+That one command validates the repository root, creates the four fixed
+`.ai-handoff` files, generates a bridge secret into a protected file outside
+every repository, starts the loopback bridge, and self-tests it before
+reporting ready: health, unauthenticated and wrong-secret rejection, and the
+constrained review tool surface. It prints the local MCP URL, the secret-file
+location, and the registered tools, and keeps running until Ctrl+C.
 
-### 3. Create a bridge secret
+Choose the approved repository carefully — never a drive root, your user
+profile, or anything containing credentials the AI should not read. If the
+repository already has an `AGENTS.md`, quickstart stops and asks you to re-run
+with `--append-agent-instructions`; it backs the file up outside the
+repository before appending its marked handoff section. Other flags:
+`--port <port>`, `--secret-file <path>`, and `--no-handoff-writes` for a
+read-only four-tool bridge.
 
-Generate a random value of at least 32 characters and store it in a protected
-file outside every repository, for example
-`C:\path\outside-repositories\bridge-secret.txt`. Never commit it or paste it
-into command history, logs, or issues.
+Connect a local MCP client to the printed URL and send the
+`X-DevSpace-Bridge-Secret` header loaded from the secret file. Never paste the
+secret into command history, logs, or issues.
 
-### 4. Start and validate locally
-
-```powershell
-.\ops\Start-DevSpaceChatGPT.ps1 `
-  -WorkspaceRoot "C:\path\to\approved-repository" `
-  -BridgeSecretFile "C:\path\outside-repositories\bridge-secret.txt" `
-  -SkipTunnel `
-  -Port 7677
-
-.\ops\Test-DevSpaceChatGPT.ps1 `
-  -WorkspaceRoot "C:\path\to\approved-repository"
-```
-
-The test verifies the recorded process, loopback listener, unauthenticated
-rejection, authenticated tool list, handoff layout, and secret-free runtime
-logs.
-
-### 5. Connect a remote MCP client
+### 3. Connect a remote MCP client (optional)
 
 For a remote client such as ChatGPT Web, put an authenticated HTTPS MCP tunnel
 in front of the loopback bridge and configure it to inject the
@@ -155,6 +136,32 @@ substitute a public unauthenticated proxy.
 For the configuration checklist, every setting, and operational edge cases,
 see [docs/setup.md](docs/setup.md), [docs/configuration.md](docs/configuration.md),
 and [OPERATIONS.md](OPERATIONS.md).
+
+### Manual lifecycle (alternative)
+
+The PowerShell lifecycle scripts remain the validated path for long-running
+and tunnel-backed Windows setups:
+
+```powershell
+.\ops\Initialize-DevSpaceChatGPTHandoff.ps1 `
+  -RepositoryRoot "C:\path\to\approved-repository" -Apply
+
+.\ops\Start-DevSpaceChatGPT.ps1 `
+  -WorkspaceRoot "C:\path\to\approved-repository" `
+  -BridgeSecretFile "C:\path\outside-repositories\bridge-secret.txt" `
+  -SkipTunnel
+
+.\ops\Test-DevSpaceChatGPT.ps1 -WorkspaceRoot "C:\path\to\approved-repository"
+```
+
+For this path, generate the bridge secret yourself: at least 32 random
+characters in a protected file outside every repository. The initialization
+script refuses to replace an existing `AGENTS.md` unless you pass
+`-AppendAgentInstructions`.
+
+Contributors should also run `npm run verify:release` (type checking, the
+full test suite, the authenticated bridge runtime test, and a production
+build) before proposing changes; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## The constrained tool surface
 

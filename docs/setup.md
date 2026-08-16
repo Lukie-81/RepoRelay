@@ -7,17 +7,24 @@ the [project README](../README.md). Start there for the complete walkthrough.
 
 1. Install Node.js 22.19-26, npm, Git for Windows, and PowerShell 5.1 or newer
    (PowerShell 7 is recommended).
-2. Run `npm ci` and `npm run verify:release` from the repository checkout.
-3. Use `.env.example` as a reference; pass real values through protected
-   process environment or the lifecycle-script parameters.
-4. Set `DEVSPACE_ALLOWED_ROOTS` to exactly one absolute repository path.
-5. Keep `DEVSPACE_TOOL_MODE=chatgpt-review` and bridge authentication enabled.
-6. Run `ops/Initialize-DevSpaceChatGPTHandoff.ps1 -RepositoryRoot
-   "C:\path\to\approved-repository" -Apply`.
-7. Start locally with `ops/Start-DevSpaceChatGPT.ps1 -WorkspaceRoot
+2. Run `npm ci` and `npm run build` from the repository checkout.
+3. Run `node dist/cli.js quickstart "C:\path\to\approved-repository"`. It
+   validates the root, creates the `.ai-handoff` files, generates the bridge
+   secret into a protected file outside every repository, starts the loopback
+   bridge, and self-tests it.
+4. Use `.env.example` as a reference for manual and long-running setups; pass
+   real values through protected process environment or the
+   lifecycle-script parameters.
+5. Set `DEVSPACE_ALLOWED_ROOTS` to exactly one absolute repository path.
+6. Keep `DEVSPACE_TOOL_MODE=chatgpt-review` and bridge authentication enabled.
+7. For long-running or tunnel-backed Windows setups, use the validated
+   lifecycle scripts: `ops/Initialize-DevSpaceChatGPTHandoff.ps1
+   -RepositoryRoot "C:\path\to\approved-repository" -Apply`, then
+   `ops/Start-DevSpaceChatGPT.ps1 -WorkspaceRoot
    "C:\path\to\approved-repository" -BridgeSecretFile
-   "C:\path\outside-repositories\bridge-secret.txt" -SkipTunnel`, or follow
-   the authenticated tunnel procedure in the README.
+   "C:\path\outside-repositories\bridge-secret.txt" -SkipTunnel` (or follow
+   the authenticated tunnel procedure in the README), then check with
+   `ops/Test-DevSpaceChatGPT.ps1`.
 
 The bridge refuses to start if the root or authentication configuration is
 unsafe. Do not work around those checks.

@@ -39,8 +39,9 @@ import {
 } from "./user-config.js";
 import { expandHomePath } from "./roots.js";
 import { shutdownHttpServer } from "./server-shutdown.js";
+import { startQuickstart, type QuickstartSummary } from "./quickstart.js";
 
-type Command = "serve" | "init" | "doctor" | "config" | "agents" | "help" | "version";
+type Command = "serve" | "init" | "quickstart" | "doctor" | "config" | "agents" | "help" | "version";
 const require = createRequire(import.meta.url);
 const SUPPORTED_NODE_RANGE = ">=22.19 <27";
 
@@ -57,6 +58,9 @@ async function main(argv: string[]): Promise<void> {
       return;
     case "init":
       await runInit({ force: args.includes("--force") });
+      return;
+    case "quickstart":
+      await runQuickstartCommand(args);
       return;
     case "doctor":
       await runDoctor();
@@ -78,7 +82,7 @@ async function main(argv: string[]): Promise<void> {
 
 function normalizeCommand(command: string | undefined): Command {
   if (!command || command === "serve" || command === "start") return "serve";
-  if (command === "init" || command === "doctor" || command === "config" || command === "agents") return command;
+  if (command === "init" || command === "quickstart" || command === "doctor" || command === "config" || command === "agents") return command;
   if (command === "help" || command === "--help" || command === "-h") return "help";
   if (command === "version" || command === "--version" || command === "-v") return "version";
   throw new Error(`Unknown command: ${command}`);
@@ -197,6 +201,117 @@ async function runInit({ force }: { force: boolean }): Promise<void> {
   }
 }
 
+interface QuickstartArgs {
+  repositoryRoot?: string;
+  port: number;
+  secretFile?: string;
+  appendAgentInstructions: boolean;
+  handoffWrites: boolean;
+}
+
+function parseQuickstartArgs(args: string[]): QuickstartArgs {
+  const positional: string[] = [];
+  const parsed: QuickstartArgs = { port: 7676, appendAgentInstructions: false, handoffWrites: true };
+
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg === "--port") {
+      const value = args[++index];
+      const port = Number(value);
+      if (value === undefined || !Number.isInteger(port) || port < 1 || port > 65535) {
+        throw new Error("--port expects a port between 1 and 65535.");
+      }
+      parsed.port = port;
+    } else if (arg === "--secret-file") {
+      const value = args[++index];
+      if (!value) throw new Error("--secret-file expects a file path.");
+      parsed.secretFile = value;
+    } else if (arg === "--append-agent-instructions") {
+      parsed.appendAgentInstructions = true;
+    } else if (arg === "--no-handoff-writes") {
+      parsed.handoffWrites = false;
+    } else if (arg && arg.startsWith("-")) {
+      throw new Error(`Unknown quickstart option: ${arg}`);
+    } else if (arg) {
+      positional.push(arg);
+    }
+  }
+
+  if (positional.length > 1) {
+    throw new Error(
+      "Usage: reporelay quickstart [repository-root] [--port <port>] [--secret-file <path>] [--append-agent-instructions] [--no-handoff-writes]",
+    );
+  }
+  parsed.repositoryRoot = positional[0];
+  return parsed;
+}
+
+async function runQuickstartCommand(args: string[]): Promise<void> {
+  const parsed = parseQuickstartArgs(args);
+  let repositoryRoot = parsed.repositoryRoot;
+  if (!repositoryRoot) {
+    if (!input.isTTY || !output.isTTY) {
+      throw new Error(
+        "Usage (non-interactive): reporelay quickstart <repository-root> [--port <port>] [--secret-file <path>] [--append-agent-instructions] [--no-handoff-writes]",
+      );
+    }
+    repositoryRoot = await textPrompt({
+      message: "Which repository root should the AI client be allowed to review?",
+      placeholder: process.cwd(),
+      defaultValue: process.cwd(),
+      validate: (value) => value?.trim() ? undefined : "Enter the repository root.",
+    });
+  }
+
+  const runtime = await startQuickstart({
+    repositoryRoot,
+    port: parsed.port,
+    secretFile: parsed.secretFile,
+    appendAgentInstructions: parsed.appendAgentInstructions,
+    handoffWrites: parsed.handoffWrites,
+  });
+  printQuickstartSummary(runtime.summary);
+
+  let stopping = false;
+  const stop = () => {
+    if (stopping) return;
+    stopping = true;
+    void runtime.stop().then(
+      () => process.exit(0),
+      (error) => {
+        console.error("quickstart shutdown failed", error);
+        process.exit(1);
+      },
+    );
+  };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+  await new Promise<void>(() => {});
+}
+
+function printQuickstartSummary(summary: QuickstartSummary): void {
+  const handoffChanges = [
+    ...summary.handoffInit.created.map((path) => `created ${path}`),
+    ...summary.handoffInit.preserved.map((path) => `preserved ${path}`),
+  ].join(", ");
+  console.log(`Quickstart bridge: ${summary.localMcpUrl}`);
+  console.log(`Approved repository: ${summary.repositoryRoot}`);
+  console.log(`Handoff files: ${handoffChanges}`);
+  console.log(`AGENTS.md: ${summary.handoffInit.agentsAction}`);
+  if (summary.handoffInit.agentsBackupPath) {
+    console.log(`AGENTS.md backup: ${summary.handoffInit.agentsBackupPath}`);
+  }
+  console.log(`Bridge secret file: ${summary.bridgeSecretFile}`);
+  console.log(`Tools: ${summary.tools.join(", ")}`);
+  console.log(
+    "Connect a local MCP client to the URL above and send the X-DevSpace-Bridge-Secret header loaded from the secret file.",
+  );
+  console.log(
+    "For a remote client, front the bridge with an authenticated HTTPS tunnel (see OPERATIONS.md).",
+  );
+  console.log("Press Ctrl+C to stop.");
+}
+
 async function serve(): Promise<void> {
   const sqliteStatus = checkSqliteNative();
   if (sqliteStatus !== "ok") {
@@ -308,6 +423,8 @@ function printHelp(): void {
       "Usage:",
       "  reporelay                 Run first-time setup if needed, then start the server",
       "  reporelay serve           Start the server",
+      "  reporelay quickstart <repository-root>",
+      "                            Approve one repository, start the review bridge, and self-test",
       "  reporelay init            Create or update ~/.devspace/config.json and auth.json",
       "  reporelay doctor          Show config, runtime, and security status",
       "  reporelay config get      Print persisted config",
