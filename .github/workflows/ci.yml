@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    env:
+      DEVSPACE_PUBLIC_BASE_URL: http://127.0.0.1:7676
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+          cache: npm
+
+      - name: Resolve canonical workspace
+        id: canonical_workspace
+        run: node scripts/resolve-canonical-workspace.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=low
+
+      - name: Verify release
+        env:
+          DEVSPACE_ALLOWED_ROOTS: ${{ steps.canonical_workspace.outputs.path }}
+        run: npm run verify:release
+
+      - name: Check whitespace
+        run: git diff --check
+
+      - name: Doctor
+        env:
+          DEVSPACE_ALLOWED_ROOTS: ${{ steps.canonical_workspace.outputs.path }}
+        run: node dist/cli.js doctor
