@@ -32,8 +32,14 @@ An existing `AGENTS.md` is preserved; pass `-AppendAgentInstructions` only
 after reviewing the external backup behavior.
 
 Keep bridge secrets, tunnel credentials, tunnel binaries, and tunnel profiles
-outside every repository. The default bridge secret is
-`%LOCALAPPDATA%\RepoRelay\reporelay-bridge-secret.txt`.
+outside every repository. RepoRelay intentionally has two runtime layouts:
+
+- CLI quickstart uses `%LOCALAPPDATA%\RepoRelay\reporelay-bridge-secret.txt`.
+- Managed Windows and tunnel lifecycle scripts default to
+  `%LOCALAPPDATA%\RepoRelay\tunnel-client\secrets\reporelay-bridge-secret.txt`.
+
+When a lifecycle script is given `-BridgeSecretFile`, that explicit path is
+used instead of its managed-lifecycle default.
 
 ## Local loopback validation
 

@@ -26,7 +26,7 @@ reporelay quickstart "C:\path\to\approved-repository"
 ```
 
 Quickstart validates the canonical repository root, creates the four
-pre-existing handoff files, generates a protected bridge secret at
+pre-existing handoff files, generates a protected CLI quickstart bridge secret at
 `%LOCALAPPDATA%\RepoRelay\reporelay-bridge-secret.txt`, starts the authenticated
 loopback bridge, and self-tests the four/seven-tool surface. Use
 `--no-handoff-writes` for read-only mode. Stop with Ctrl+C.
@@ -117,7 +117,9 @@ with RepoRelay.
 ## Windows lifecycle scripts
 
 The scripts use the source checkout as their authority and keep runtime records
-under `%LOCALAPPDATA%\RepoRelay` by default:
+under `%LOCALAPPDATA%\RepoRelay` by default. Their managed lifecycle bridge
+secret defaults to `%LOCALAPPDATA%\RepoRelay\tunnel-client\secrets\reporelay-bridge-secret.txt`,
+which is intentionally distinct from the CLI quickstart secret path above:
 
 ```powershell
 .\ops\Initialize-RepoRelayHandoff.ps1 -RepositoryRoot "C:\path\to\approved-repository" -Apply
