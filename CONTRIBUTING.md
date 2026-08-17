@@ -29,7 +29,9 @@ your local policy provides a recoverable Recycle Bin helper.
 
 ## Change requirements
 
-- Keep the four-tool read-only surface as the default.
+- Keep the general server/review profile's four-tool read-only surface as its
+  default. Keep the Quickstart contract consistent: Default Quickstart: 7
+  tools. Read-only mode (`--no-handoff-writes`): 4 tools.
 - Do not broaden the bridge beyond one canonical approved root.
 - Do not add destination paths to the three handoff writer schemas.
 - Do not add shell, process, Git, arbitrary mutation, artifact, worktree,

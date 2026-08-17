@@ -21,8 +21,8 @@ home directory. It creates missing `.ai-handoff` targets without replacing
 existing ones, generates a 32-byte bridge secret, starts the loopback server,
 and checks missing/wrong authentication plus the exact tool surface.
 
-Use `--no-handoff-writes` for the four-tool read-only surface. Use
-`--append-agent-instructions` only when an existing `AGENTS.md` has been
+Default Quickstart: 7 tools. Read-only mode (`--no-handoff-writes`): 4 tools.
+Use `--append-agent-instructions` only when an existing `AGENTS.md` has been
 reviewed; quickstart backs it up outside the repository before appending.
 
 After quickstart, run an independent audit. It starts its own temporary

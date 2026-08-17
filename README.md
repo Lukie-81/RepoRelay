@@ -164,9 +164,12 @@ A successful start prints a checklist ending with `Ready.`, followed by your
 local MCP URL and bridge-secret file path. If it stops with an error instead,
 see [Troubleshooting](#troubleshooting).
 
-The command above uses the default handoff mode, which exposes the four
-read-only tools plus the three fixed handoff writers. For the read-only
-four-tool surface, use:
+The command above uses the default Quickstart surface:
+
+Default Quickstart: 7 tools. Read-only mode (`--no-handoff-writes`): 4 tools.
+
+The default surface includes the four read-only tools plus the three fixed
+handoff writers. For the read-only four-tool surface, use:
 
 ```powershell
 reporelay quickstart "C:\Projects\my-app" --no-handoff-writes
@@ -196,6 +199,27 @@ secret value into ChatGPT, source control, logs, or handoff files.
 
 ### Connect ChatGPT Web
 
+Your goal is to make RepoRelay appear as an app that ChatGPT can use.
+
+There are three things to connect:
+
+1. **RepoRelay** — runs on your PC and safely exposes one repository.
+2. **Secure MCP Tunnel** — connects your PC to OpenAI without opening RepoRelay
+   to the public internet.
+3. **ChatGPT app** — tells ChatGPT which tunnel to use.
+
+```text
+PC                                      OpenAI / ChatGPT
+
+Your repository
+      ↑
+RepoRelay :7676
+      ↑
+tunnel-client  ───── Secure MCP Tunnel ─────→  ChatGPT app
+```
+
+If RepoRelay is already showing `Ready.`, Step 1 is finished.
+
 ChatGPT Web runs on OpenAI's servers, so it cannot connect directly to your
 PC's `127.0.0.1`. An OpenAI **Secure MCP Tunnel** carries the traffic instead.
 **The tunnel does not replace RepoRelay — it only connects ChatGPT Web to
@@ -213,76 +237,195 @@ http://127.0.0.1:7676/mcp
 RepoRelay
 ```
 
-Connecting happens in three parts, each in a different place. Finish each
-part and its checkpoint before moving on:
+You will use two PowerShell windows and one browser:
+
+- **PowerShell window 1:** the RepoRelay quickstart window from the previous
+  section. Keep it open.
+- **PowerShell window 2:** the `tunnel-client` window. Keep it open too.
+- **Browser:** OpenAI Platform to create the tunnel, then ChatGPT Web to create
+  the MCP app.
+
+There are three connection stages. Each stage has a checkpoint below; do not
+move on until the current checkpoint passes:
 
 | Part | Where | You end up with |
 | --- | --- | --- |
-| 1. Start RepoRelay | Your PC | A running bridge (done in the previous section) |
-| 2. Create and run the tunnel | OpenAI Platform + your PC | A `tunnel_id` and a running, healthy `tunnel-client` |
-| 3. Create the ChatGPT app | ChatGPT Web | An app whose tools you verified with **Scan Tools** |
+| 1. Start RepoRelay | Your PC | A running bridge and a printed local MCP URL |
+| 2. Create and run the tunnel | OpenAI Platform + your PC | A `tunnel_id` and a healthy, running `tunnel-client` |
+| 3. Create the ChatGPT app | ChatGPT Web | An MCP app whose tools passed **Scan Tools** |
 
-#### Part 2 — Create and run the tunnel
+#### Step 1 — Make sure RepoRelay is running
+
+If you have not started it yet, run this in PowerShell window 1 from the
+RepoRelay folder:
+
+```powershell
+node dist/cli.js quickstart "C:\Projects\my-app"
+```
+
+Replace `C:\Projects\my-app` with the repository you want ChatGPT to inspect.
+If you installed RepoRelay globally, use `reporelay quickstart ...` instead.
+Leave this PowerShell window open.
+
+Look for output like this:
+
+```text
+Ready.
+Local MCP: http://127.0.0.1:7676/mcp
+Health check: http://127.0.0.1:7676/healthz
+Bridge secret file: <protected local file path>
+```
+
+Before continuing, you should have:
+
+- [ ] RepoRelay says `Ready.`
+- [ ] the RepoRelay PowerShell window is still open;
+- [ ] the local MCP URL;
+- [ ] the **bridge-secret file path**, not the secret value.
+
+Open the health-check URL in a browser on the same PC. It should return
+`{"ok":true,"name":"reporelay"}`.
+
+The bridge secret must never be pasted into ChatGPT, OpenAI Platform, a Git
+repository, or a tunnel profile as literal text. The tunnel client reads it
+from the protected file on your PC.
+
+#### Step 2 — Understand the four values
+
+These values have different owners and different jobs:
+
+| Thing | Comes from | Used for |
+| --- | --- | --- |
+| `tunnel_id` | OpenAI Secure MCP Tunnel | Identifies which OpenAI tunnel ChatGPT should use |
+| OpenAI runtime API credential | OpenAI | Authenticates `tunnel-client` to OpenAI |
+| RepoRelay bridge-secret file | RepoRelay quickstart | Authenticates `tunnel-client` to RepoRelay locally |
+| Local MCP URL | RepoRelay quickstart | Tells `tunnel-client` where RepoRelay is running |
+
+The OpenAI tunnel credential and the RepoRelay bridge secret are **not the same
+thing**:
+
+```text
+OpenAI runtime credential
+        ↓
+authenticates tunnel-client → OpenAI
+
+RepoRelay bridge secret
+        ↓
+authenticates tunnel-client → RepoRelay
+```
+
+You use the two file paths in the local `tunnel-client` command. You never
+paste either secret into ChatGPT.
+
+#### Step 3 — Create and run the tunnel
+
+Now you are leaving RepoRelay temporarily and setting up the OpenAI side.
 
 **In the OpenAI Platform** (a few minutes in the browser):
 
-1. Open OpenAI's current [Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels).
-2. In Platform tunnel settings, create or select a tunnel.
-3. Write down its `tunnel_id`.
+1. Open OpenAI's current [Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels), then open **Platform tunnel settings**.
+2. Create or select a tunnel.
+3. Associate the tunnel with the ChatGPT workspace where you will create the
+   app. A tunnel associated only with a Platform organization may not appear
+   in ChatGPT.
+4. Create or obtain a runtime API key for `tunnel-client`. Save it in a
+   protected file outside every repository.
+5. Write down the tunnel's `tunnel_id`.
 
-✅ **Checkpoint:** you have a `tunnel_id` written down.
+✅ **Checkpoint:** you have the `tunnel_id`, a protected runtime API-key file,
+and permission to use the target ChatGPT workspace. Creating/editing tunnels
+requires Platform tunnel-management permission; running or selecting one
+requires tunnel-use permission.
 
-**On your PC**, install `tunnel-client` by following the OpenAI guide above,
-then configure it to:
+**On your PC**, download the current `tunnel-client` from the OpenAI guide or
+the [official releases](https://github.com/openai/tunnel-client/releases/latest).
+Open a second PowerShell window and leave the RepoRelay window running.
 
-- use the `tunnel_id`;
-- forward to the local MCP URL printed by quickstart (for example
-  `http://127.0.0.1:7676/mcp`);
-- use its protected runtime API key;
-- send `X-RepoRelay-Bridge-Secret` from protected local file-backed storage —
-  the same bridge-secret file quickstart printed. The secret value never goes
-  into ChatGPT, source control, logs, or handoff files.
+The following Windows commands keep both secrets in files. Replace the four
+placeholder values before running them:
 
-Keep `tunnel-client` running and healthy while you create or test the ChatGPT
-app. If it is managed or autostarted, confirm its status instead of starting a
-second copy.
+You only need to replace the four values at the top. Leave the doctor and run commands themselves unchanged.
 
-✅ **Checkpoint:** the RepoRelay terminal and `tunnel-client` are both still
-running, and opening the quickstart health-check URL in your PC's browser (for
-example `http://127.0.0.1:7676/healthz`) prints `{"ok":true,"name":"reporelay"}`.
+```powershell
+$TunnelId = "tunnel_replace_with_your_tunnel_id"
+$McpUrl = "http://127.0.0.1:7676/mcp"
+$BridgeSecretFile = "C:\Users\YOUR_NAME\AppData\Local\RepoRelay\reporelay-bridge-secret.txt"
+$RuntimeApiKeyFile = "C:\Users\YOUR_NAME\Documents\RepoRelay\openai-control-plane-api-key.txt"
+$BridgeHeader = "X-RepoRelay-Bridge-Secret: file:$BridgeSecretFile"
+
+tunnel-client doctor `
+  --control-plane.tunnel-id $TunnelId `
+  --control-plane.api-key "file:$RuntimeApiKeyFile" `
+  --mcp.server-url $McpUrl `
+  --mcp.extra-headers $BridgeHeader `
+  --mcp.discovery-extra-headers $BridgeHeader `
+  --explain
+```
+
+The doctor command must pass before you continue. It checks the tunnel
+configuration and local MCP reachability. If Windows says that
+`tunnel-client` is not recognized, run the same command with the full path to
+`tunnel-client.exe`.
+
+After doctor passes, start the client and leave this window open:
+
+```powershell
+tunnel-client run `
+  --control-plane.tunnel-id $TunnelId `
+  --control-plane.api-key "file:$RuntimeApiKeyFile" `
+  --mcp.server-url $McpUrl `
+  --mcp.extra-headers $BridgeHeader `
+  --mcp.discovery-extra-headers $BridgeHeader
+```
+
+`--mcp.extra-headers` sends the RepoRelay header with normal MCP requests.
+`--mcp.discovery-extra-headers` sends it during discovery and startup probes.
+The `file:` values tell `tunnel-client` to read the secrets locally; do not
+replace them with the actual secret text.
+
+✅ **Tunnel checkpoint:**
+
+- [ ] RepoRelay is still running;
+- [ ] `tunnel-client` is running on your PC;
+- [ ] `tunnel-client doctor` passed and `tunnel-client run` remains open;
+- [ ] you have a `tunnel_id`;
+- [ ] the OpenAI runtime credential is stored safely;
+- [ ] `tunnel-client` forwards to the local MCP URL;
+- [ ] `tunnel-client` loads the RepoRelay bridge secret from its file.
+
+At this point the network path exists, but ChatGPT still does not know about
+RepoRelay. The next step creates the ChatGPT app.
+
+If the tunnel client prints a local health or readiness URL, confirm that it
+reports healthy, ready, and polling.
 
 > **Full tunnel setup → [`docs/chatgpt-web.md`](docs/chatgpt-web.md)**
 
-#### Part 3 — Create the ChatGPT app
+#### Step 4 — Create the RepoRelay app in ChatGPT
 
 Now switch to ChatGPT Web in your browser:
 
-1. Enable Developer Mode if required, or ask your workspace administrator for
-   access.
-2. Create a developer-mode MCP app. The current flow is under Apps → Create
-   or the equivalent developer-mode app screen.
-3. Under **Connection**, choose **Tunnel**.
-4. Select your tunnel or enter its `tunnel_id`.
-5. Click **Scan Tools**.
-6. Confirm that the returned tools match one of the lists below.
-7. Click **Create**. If your workspace places the app in Drafts, enable or
-   select it using the current workspace flow.
-8. Start a **new** chat.
-9. Select the RepoRelay app.
+1. Open **Apps** in ChatGPT Web and choose **Create**. Depending on your plan,
+   this may be under **Workspace Settings → Apps → Create** or **Settings →
+   Apps → Create**.
+2. Enable Developer Mode, or ask the workspace administrator to grant you
+   access. If you cannot see **Create**, this is a ChatGPT permission issue,
+   not a RepoRelay issue.
+3. Choose a custom MCP app and select **Tunnel** under **Connection**.
+4. Select the tunnel you created, or paste its `tunnel_id`.
+5. If ChatGPT asks for an endpoint, do not enter `127.0.0.1` or `localhost`.
+   The tunnel selection supplies the remote endpoint.
+6. Do **not** paste the RepoRelay bridge secret into ChatGPT. The local
+   `tunnel-client` supplies that header on the PC.
+7. Click **Scan Tools** and wait for the scan to finish.
+8. Review the returned tools, then click **Create**. If the app appears under
+   **Drafts**, publish or enable it as required by your workspace.
+9. Start a **new** chat, open the tools menu, and select the RepoRelay app.
 
 For current ChatGPT app labels, permissions, and availability, use OpenAI's
 [Developer mode and MCP apps in ChatGPT](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt) guide.
 
-**Read-only quickstart** (`--no-handoff-writes`):
-
-```text
-open_workspace
-list_files
-read_file
-search_files
-```
-
-**Default quickstart with handoff writes:**
+**Default Quickstart: 7 tools**
 
 ```text
 open_workspace
@@ -294,22 +437,41 @@ write_review
 update_handoff_state
 ```
 
+**Read-only mode (`--no-handoff-writes`): 4 tools**
+
+```text
+open_workspace
+list_files
+read_file
+search_files
+```
+
 If you see shell, Git, process execution, generic file editing, delete tools,
 or any unexpected tool, stop and investigate before using the app.
 
-✅ **Checkpoint: Scan Tools listed exactly the expected tools above — nothing
-more, nothing fewer.** If Scan Tools failed or returned nothing, the usual
-causes are in [Troubleshooting](#troubleshooting).
+✅ **Checkpoint:** **Scan Tools** lists exactly the expected tools above —
+nothing more, nothing fewer. If the tunnel is not listed, check that it is
+associated with the target ChatGPT workspace and that you have tunnel-use
+permission. If scanning fails, keep both PowerShell windows open and rerun the
+full `tunnel-client doctor` command from Step 3 before trying again.
 
-### First test
+#### Step 5 — Confirm RepoRelay is connected
 
-In the new chat, ask:
+Success means all five of these are true:
+
+- [ ] RepoRelay is running locally;
+- [ ] `tunnel-client` is healthy and still running;
+- [ ] the ChatGPT app exists;
+- [ ] **Scan Tools** showed the expected RepoRelay tools;
+- [ ] RepoRelay can be selected in a new ChatGPT conversation.
+
+In that new chat, ask:
 
 ```text
-Open the approved repository and summarize its architecture.
+Open the approved repository, list the top-level files, and read README.md.
 ```
 
-Then test the boundary:
+Then test the security boundary:
 
 ```text
 Try to read .env.
@@ -324,9 +486,40 @@ BLOCKED
 If the sensitive-file request succeeds, or the tool list is unexpected, stop
 and run the audit before continuing.
 
-If ChatGPT cannot connect at all or says it cannot open the repository, the
-usual causes are a stopped RepoRelay terminal or an unhealthy `tunnel-client` —
-see [Troubleshooting](#troubleshooting).
+#### Can't see RepoRelay in ChatGPT?
+
+Check the connection in this order:
+
+1. **Does RepoRelay still say `Ready.`?** If not, restart RepoRelay.
+2. **Is `tunnel-client` running and healthy?** If not, rerun the full doctor
+   command from Step 3 and restart it.
+3. **Is the ChatGPT app using the correct tunnel or `tunnel_id`?** If not,
+   correct the app connection.
+4. **Did Scan Tools return the expected RepoRelay tools?** If not, check the
+   local MCP URL and both RepoRelay authentication header options.
+5. **Did scanning succeed but the app is not in the chat?** Start a new chat
+   and select or enable the app using the current ChatGPT workspace flow.
+
+If the tool list is unexpected, stop and run the audit before continuing. If
+ChatGPT cannot connect at all, the usual causes are a stopped RepoRelay
+terminal or an unhealthy `tunnel-client`.
+
+#### Next time
+
+You do **not** recreate the tunnel or ChatGPT app every time. Normally:
+
+1. Start RepoRelay.
+2. Confirm `tunnel-client` is running.
+3. Open a new ChatGPT chat.
+4. Select the RepoRelay app.
+5. Start working.
+
+The README explains which values go where and what success looks like. The
+[ChatGPT Web runbook](docs/chatgpt-web.md) contains the detailed local tunnel
+configuration. OpenAI's [Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+owns current tunnel commands and credentials; OpenAI's [Developer mode and
+MCP apps guide](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt)
+owns current ChatGPT UI and workspace permissions.
 
 ## How it works
 
@@ -512,9 +705,9 @@ The most common problems and their fixes:
 | `Cannot find module ... dist\cli.js` | You are in the wrong folder for a ZIP or clone install. In PowerShell, `cd` into the `RepoRelay` (or `RepoRelay-main`) folder, and run `npm run build` if you have not built yet. |
 | `Port 7676 is already in use` | RepoRelay or another program is already listening there. Press Ctrl+C in its window to stop it, or rerun quickstart with a different `--port` and point the tunnel at the new port. |
 | Quickstart stops about an existing `AGENTS.md` | The repository already has an `AGENTS.md` without the RepoRelay marker. Review the printed instructions before using `--append-agent-instructions`. |
-| **Scan Tools** fails or returns no tools | `tunnel-client` is not running or healthy, it forwards to the wrong local port, or it is not sending `X-RepoRelay-Bridge-Secret`. Confirm `tunnel-client` status, open the quickstart health-check URL in your PC's browser to confirm RepoRelay is up, and check the tunnel points at the printed local MCP URL. Then rescan. |
-| ChatGPT cannot connect or cannot open the repository | The RepoRelay terminal was closed (Ctrl+C) or quickstart is not running. Restart `reporelay quickstart`, confirm `tunnel-client` is healthy, then ask again in a **new** chat. |
-| ChatGPT offers no tools / the app is missing | The app is still in Drafts or not enabled in your workspace. Enable or select it using the current workspace flow, then start a new chat and select the RepoRelay app. |
+| **Scan Tools** fails or returns no tools | Keep both PowerShell windows open. Confirm the quickstart health check works, rerun the full `tunnel-client doctor` command from Step 3, and verify the client uses the printed local MCP URL plus both file-backed `X-RepoRelay-Bridge-Secret` header options. Then rescan. |
+| ChatGPT cannot connect or cannot open the repository | The RepoRelay terminal or `tunnel-client run` stopped. Restart the missing process, confirm both checkpoints pass, then try again in a **new** chat. |
+| ChatGPT offers no tools / the app is missing | Confirm the tunnel is associated with the target ChatGPT workspace, you have tunnel-use permission, and the app is enabled or published instead of remaining in Drafts. |
 | **Scan Tools** lists unexpected tools | Stop and investigate before using the app: run the audit command above and confirm the expected tool list. |
 
 For anything else, run `reporelay doctor`. It

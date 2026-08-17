@@ -20,6 +20,10 @@ being persisted in the repository.
 | `REPORELAY_LOG_TOOL_CALLS` | no | Tool-call logging; default `1`. |
 | `REPORELAY_CONFIG_DIR` | no | Optional location used by quickstart for the protected secret file. |
 
+The general server configuration defaults to the four-tool read-only surface.
+For the CLI Quickstart: Default Quickstart: 7 tools. Read-only mode
+(`--no-handoff-writes`): 4 tools.
+
 The header name is `X-RepoRelay-Bridge-Secret`. Header count is checked from
 the raw request, so duplicate values are rejected. The secret is never printed
 by the CLI or stored in runtime metadata.

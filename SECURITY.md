@@ -6,6 +6,9 @@ RepoRelay is an authenticated, loopback-only MCP bridge for one explicitly
 approved repository. It exposes exactly four read/search tools by default:
 `open_workspace`, `list_files`, `read_file`, and `search_files`.
 
+For the CLI Quickstart: Default Quickstart: 7 tools. Read-only mode
+(`--no-handoff-writes`): 4 tools.
+
 When `REPORELAY_HANDOFF_WRITES=1`, it adds exactly three pathless writers:
 `write_next_task`, `write_review`, and `update_handoff_state`. They can replace
 only the pre-existing `.ai-handoff/NEXT_TASK.md`, `.ai-handoff/REVIEW.md`, and
