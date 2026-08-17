@@ -174,10 +174,12 @@ function printQuickstartSummary(summary: QuickstartSummary): void {
   console.log("Ready.");
   console.log("");
   console.log(`Local MCP: ${summary.localMcpUrl}`);
+  console.log(`Health check: ${new URL("/healthz", summary.localMcpUrl).toString()}`);
   console.log(`Bridge secret file: ${summary.bridgeSecretFile}`);
   if (handoffChanges) console.log(`Handoff files: ${handoffChanges}`);
   if (summary.handoffInit.agentsBackupPath) console.log(`AGENTS.md backup: ${summary.handoffInit.agentsBackupPath}`);
-  console.log("Next: Connect ChatGPT Web through an OpenAI Secure MCP Tunnel.");
+  console.log("Next: connect ChatGPT Web through an OpenAI Secure MCP Tunnel.");
+  console.log("Guide: https://github.com/Lukie-81/RepoRelay#connect-chatgpt-web");
   console.log("Press Ctrl+C to stop.");
 }
 
@@ -185,6 +187,7 @@ async function serve(): Promise<void> {
   const running = createServer(loadConfig());
   const httpServer = running.app.listen(running.config.port, running.config.host, () => {
     console.log(`reporelay listening on http://${running.config.host}:${running.config.port}/mcp`);
+    console.log(`reporelay health check: http://${running.config.host}:${running.config.port}/healthz`);
     console.log(`approved repository: ${running.config.bridgeWorkspaceRoot}`);
     console.log(`handoff writes: ${running.config.handoffWritesEnabled ? "enabled" : "disabled"}`);
     console.log(`public base url: ${running.config.publicBaseUrl}`);
@@ -226,6 +229,7 @@ function runDoctor(): void {
     console.log(`Configuration: invalid (${error instanceof Error ? error.message : String(error)})`);
     process.exitCode = 1;
   }
+  console.log("Docs: https://github.com/Lukie-81/RepoRelay#readme");
 }
 
 function printHelp(): void {
@@ -256,6 +260,8 @@ function printHelp(): void {
     "  --no-handoff-writes      Verify the four-tool read-only surface",
     "",
     "The bridge requires X-RepoRelay-Bridge-Secret and never exposes shell, process, Git, patch, artifact, worktree, skill, subagent, or unrestricted write tools.",
+    "",
+    "Docs: https://github.com/Lukie-81/RepoRelay#readme",
   ].join("\n"));
 }
 

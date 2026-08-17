@@ -28,9 +28,14 @@ one approved repository
    node dist/cli.js quickstart "C:\path\to\approved-repository"
    ```
 
-   When installed as a package, use `npx reporelay quickstart ...` instead.
+   When installed as a package, use `npx reporelay-mcp@latest quickstart ...`
+   instead.
 
 2. Keep the printed local MCP URL and the protected bridge-secret file path.
+   The quickstart summary also prints a health-check URL (for example
+   `http://127.0.0.1:7676/healthz`); opening it in a browser on the same PC
+   should print `{"ok":true,"name":"reporelay"}`. Use it to confirm the bridge
+   is still running while you wire up the tunnel.
    The secret value must stay in protected local storage. RepoRelay never
    prints it and it must not be copied into ChatGPT, Git, a handoff file, or a
    tunnel profile as inline text. On POSIX systems the quickstart file uses
