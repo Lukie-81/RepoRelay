@@ -34,9 +34,29 @@ persistence, or UI workspace management.
 - Handoff targets must already exist and cannot be selected by the caller.
 - OAuth discovery and authorization routes are absent.
 
+## `reporelay audit`
+
+`reporelay audit <repository>` is an executable local verification, not a
+status banner. It validates the canonical approved root, loopback/authentication
+configuration, starts a temporary authenticated loopback listener, checks
+missing and incorrect credentials, discovers the actual MCP tools, and rejects
+unexpected or dangerous tool capabilities. It also exercises the production
+MCP path against a disposable fixture containing sensitive files, traversal,
+outside-root, symlink/junction, and hard-link attacks. When handoff writers are
+enabled, it verifies their fixed schemas and proves that `.ai-handoff/RESULT.md`
+remains unchanged.
+
+`reporelay audit <repository> --json` emits a stable JSON object with a
+`schemaVersion`, `passed`, canonical `repository`, and per-check `id`, `area`,
+`status`, and `message` fields. Exit code `0` means no check failed; any
+failure or inability to establish the required authenticated checks returns a
+non-zero exit code. The audit does not inspect or operate ChatGPT Web, an
+external tunnel, or a public deployment, and it does not modify the approved
+repository.
+
 These checks are covered by the focused tests in `src/config.test.ts`,
-`src/review-files.test.ts`, `src/mcp-tools.test.ts`, and
-`src/bridge-auth.test.ts`.
+`src/review-files.test.ts`, `src/mcp-tools.test.ts`, `src/bridge-auth.test.ts`,
+and `src/audit.test.ts`.
 
 ## Limitations
 

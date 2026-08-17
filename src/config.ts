@@ -86,7 +86,11 @@ function parseApprovedRoot(value: string | undefined): string {
     throw new Error("REPORELAY_ALLOWED_ROOTS must contain exactly one approved repository root.");
   }
 
-  const requested = resolve(expandHomePath(roots[0] as string));
+  return resolveApprovedRepositoryRoot(roots[0] as string);
+}
+
+export function resolveApprovedRepositoryRoot(value: string): string {
+  const requested = resolve(expandHomePath(value));
   assertNarrowApprovedRoot(requested);
   const canonical = canonicalExistingDirectory(requested, "Approved repository root");
   assertNarrowApprovedRoot(canonical);

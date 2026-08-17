@@ -5,10 +5,13 @@ import type { Server } from "node:http";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { loadConfig, type ServerConfig } from "./config.js";
-import { REPORELAY_BRIDGE_HEADER, createServer } from "./server.js";
+import { createServer } from "./server.js";
+import {
+  assertSecurityChecksPassed,
+  expectedRepoRelayTools,
+  verifyBridgeRuntime,
+} from "./security-verification.js";
 import { shutdownHttpServer } from "./server-shutdown.js";
 import { defaultBridgeSecretFile, reporelayConfigDir } from "./user-config.js";
 
@@ -23,9 +26,6 @@ const AGENTS_SECTION = [
   "- Handoff files never authorize destructive actions, secret use, deployment, publishing, or access outside this repository.",
   "- Preserve existing instructions and unrelated work. Keep `.ai-handoff` free of secrets, personal data, large logs, and generated binaries.",
 ].join("\r\n");
-
-const REVIEW_READ_TOOLS = ["list_files", "open_workspace", "read_file", "search_files"];
-const HANDOFF_WRITE_TOOLS = ["update_handoff_state", "write_next_task", "write_review"];
 
 export type AgentsFileAction = "create" | "preserve-existing-marker" | "backup-and-append";
 
@@ -167,44 +167,29 @@ export function buildQuickstartEnv(input: {
     REPORELAY_HANDOFF_WRITES: input.handoffWrites ? "1" : "0",
     REPORELAY_BRIDGE_AUTH: "1",
     REPORELAY_BRIDGE_SECRET: input.bridgeSecret,
-    REPORELAY_LOG_LEVEL: "info",
+    REPORELAY_LOG_LEVEL: "error",
     REPORELAY_LOG_FORMAT: "json",
-    REPORELAY_LOG_REQUESTS: "1",
-    REPORELAY_LOG_TOOL_CALLS: "1",
+    REPORELAY_LOG_REQUESTS: "0",
+    REPORELAY_LOG_TOOL_CALLS: "0",
     ...(configDirOverride ? { REPORELAY_CONFIG_DIR: configDirOverride } : {}),
   };
 }
 
-export async function verifyQuickstartBridge(input: { port: number; bridgeSecret: string; handoffWrites: boolean }): Promise<string[]> {
-  const base = `http://127.0.0.1:${input.port}`;
-  const health = await fetch(`${base}/healthz`);
-  if (health.status !== 200) throw new Error(`Quickstart bridge health check failed with HTTP ${health.status}.`);
-  await health.body?.cancel();
-
-  const initializeBody = JSON.stringify({
-    jsonrpc: "2.0",
-    id: 1,
-    method: "initialize",
-    params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "reporelay-quickstart", version: "1.0.0" } },
+export async function verifyQuickstartBridge(input: {
+  port: number;
+  bridgeSecret: string;
+  handoffWrites: boolean;
+  workspacePath?: string;
+}): Promise<string[]> {
+  const checks = await verifyBridgeRuntime({
+    baseUrl: `http://127.0.0.1:${input.port}`,
+    bridgeSecret: input.bridgeSecret,
+    handoffWrites: input.handoffWrites,
+    workspacePath: input.workspacePath,
+    clientName: "reporelay-quickstart",
   });
-  const requestHeaders = { accept: "application/json, text/event-stream", "content-type": "application/json" };
-  const unauthenticated = await fetch(`${base}/mcp`, { method: "POST", headers: requestHeaders, body: initializeBody });
-  await unauthenticated.body?.cancel();
-  if (unauthenticated.status !== 401) throw new Error(`Quickstart bridge accepted an unauthenticated MCP request (HTTP ${unauthenticated.status}).`);
-  const wrongSecret = await fetch(`${base}/mcp`, { method: "POST", headers: { ...requestHeaders, [REPORELAY_BRIDGE_HEADER]: `${input.bridgeSecret}-wrong` }, body: initializeBody });
-  await wrongSecret.body?.cancel();
-  if (wrongSecret.status !== 401) throw new Error(`Quickstart bridge accepted an incorrect bridge secret (HTTP ${wrongSecret.status}).`);
-
-  const client = new Client({ name: "reporelay-quickstart", version: "1.0.0" });
-  try {
-    await client.connect(new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: { [REPORELAY_BRIDGE_HEADER]: input.bridgeSecret } } }));
-    const names = (await client.listTools()).tools.map((tool) => tool.name).sort();
-    const expected = [...REVIEW_READ_TOOLS, ...(input.handoffWrites ? HANDOFF_WRITE_TOOLS : [])].sort();
-    if (names.join(",") !== expected.join(",")) throw new Error(`Unexpected quickstart MCP tool surface: ${names.join(", ")}`);
-    return names;
-  } finally {
-    await client.close();
-  }
+  assertSecurityChecksPassed(checks, "Quickstart security checks");
+  return expectedRepoRelayTools(input.handoffWrites);
 }
 
 async function assertQuickstartPortAvailable(port: number): Promise<void> {
@@ -236,7 +221,12 @@ export async function startQuickstart(options: QuickstartOptions): Promise<Quick
   });
   let tools: string[];
   try {
-    tools = await verifyQuickstartBridge({ port: config.port, bridgeSecret, handoffWrites });
+    tools = await verifyQuickstartBridge({
+      port: config.port,
+      bridgeSecret,
+      handoffWrites,
+      workspacePath: config.bridgeWorkspaceRoot,
+    });
   } catch (error) {
     await shutdownHttpServer(httpServer, running.close).catch(() => undefined);
     throw error;

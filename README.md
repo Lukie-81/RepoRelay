@@ -5,12 +5,19 @@
   </picture>
 </p>
 
-<p align="center"><b>Give an AI reviewer your repository — not your machine.</b></p>
+<p align="center"><b>Give AI access to your repository &mdash; not your machine.</b></p>
 
 RepoRelay is a local-first MCP bridge for reviewing one explicitly approved
-repository. It binds to loopback, requires a bridge secret, and exposes only
-bounded repository read/search tools, with optional fixed `.ai-handoff` writers
-for coordination with a separate coding agent.
+repository. It gives ChatGPT a small set of safe repository tools instead of a
+terminal: the bridge binds to loopback, requires authentication, and exposes
+bounded repository read/search tools with optional fixed `.ai-handoff` writers.
+
+| AI gets | AI does not get |
+| --- | --- |
+| Read files | Shell |
+| Search files | Git |
+| List directories | Process execution |
+| Fixed handoff writes when enabled | Arbitrary writes |
 
 ![RepoRelay architecture: an authenticated AI reviewer reaches the loopback bridge, which exposes bounded read and search access to one approved repository and optional fixed handoff writers for a separate implementer.](docs/assets/reporelay-hero.png)
 
@@ -22,7 +29,7 @@ validated lifecycle environment.
 ```powershell
 npm ci
 npm run build
-reporelay quickstart "C:\path\to\approved-repository"
+node dist/cli.js quickstart "C:\path\to\approved-repository"
 ```
 
 Quickstart validates the canonical repository root, creates the four
@@ -34,6 +41,22 @@ loopback bridge, and self-tests the four/seven-tool surface. Use
 For a source checkout, use `node dist/cli.js` in place of `reporelay`.
 `reporelay doctor` reports configuration and security status without printing
 secret values.
+
+After quickstart, run the independent local audit whenever you want a fresh
+security check:
+
+```powershell
+node dist/cli.js audit "C:\path\to\approved-repository"
+node dist/cli.js audit "C:\path\to\approved-repository" --json
+```
+
+The audit starts a temporary authenticated loopback listener, exercises the
+real MCP surface, and uses a disposable adversarial fixture for containment and
+fixed-handoff checks. It does not publish, deploy, or write to the approved
+repository.
+
+When RepoRelay is installed as a package, the equivalent commands are
+`npx reporelay quickstart ...` and `npx reporelay audit ...`.
 
 The MCP client must send `X-RepoRelay-Bridge-Secret` with the value loaded from
 the protected secret file. Never put that value in source, command history,
@@ -113,6 +136,49 @@ See [`.env.example`](.env.example) and [docs/configuration.md](docs/configuratio
 Remote review requires an independently secured HTTPS tunnel that forwards to
 the loopback listener and injects the same header. The tunnel is not bundled
 with RepoRelay.
+
+## ChatGPT Web / Secure MCP Tunnel
+
+ChatGPT Web connects to remote MCP servers; it does not connect directly to a
+developer machine's `localhost`. For a private local RepoRelay bridge, use an
+OpenAI Secure MCP Tunnel:
+
+```text
+ChatGPT Web
+    ↓
+OpenAI Secure MCP Tunnel
+    ↓
+local tunnel client
+    ↓
+127.0.0.1:<RepoRelay port>/mcp
+    ↓
+RepoRelay
+    ↓
+approved repository
+```
+
+The first-time flow is:
+
+1. Run `quickstart` and keep the local bridge running.
+2. Configure the Secure MCP Tunnel to forward to the printed local MCP URL and
+   inject `X-RepoRelay-Bridge-Secret` from protected file-backed storage. Never
+   paste the secret into ChatGPT, source, or a tunnel profile.
+3. Use the existing Windows lifecycle scripts to verify the local side and the
+   tunnel client. They run the tunnel client's `doctor --explain` checks, keep
+   administration listeners on loopback, and test the exact RepoRelay tool
+   surface. See [`docs/chatgpt-web.md`](docs/chatgpt-web.md).
+4. In ChatGPT Web, enable developer mode if your workspace requires it, create
+   a custom MCP app, enter the HTTPS tunnel endpoint, and use **Scan Tools**.
+   Review the returned tools before creating the app; the expected surface is
+   listed above and in [`SECURITY.md`](SECURITY.md).
+5. Start a new chat, select the enabled app, and confirm safe list/read/search
+   operations. Re-scan after any server change.
+
+Read OpenAI's [current developer-mode and MCP app instructions](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt)
+for plan and UI details that RepoRelay cannot control. RepoRelay does not add a
+`connect chatgpt` command: the tunnel client and ChatGPT workspace credentials
+remain operator-managed, so automating them would add state and secret
+ownership without improving the security boundary.
 
 ## Windows lifecycle scripts
 

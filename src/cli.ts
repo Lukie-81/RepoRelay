@@ -2,13 +2,14 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { formatSecurityAudit, resolveAuditBridgeSecret, runSecurityAudit } from "./audit.js";
 import { createServer } from "./server.js";
 import { loadConfig } from "./config.js";
 import { startQuickstart, type QuickstartSummary } from "./quickstart.js";
 import { reporelayConfigDir } from "./user-config.js";
 import { shutdownHttpServer } from "./server-shutdown.js";
 
-type Command = "serve" | "quickstart" | "doctor" | "help" | "version";
+type Command = "serve" | "quickstart" | "audit" | "doctor" | "help" | "version";
 const SUPPORTED_NODE_MAJOR = 22;
 const SUPPORTED_NODE_MIN_MINOR = 19;
 const SUPPORTED_NODE_MAX_MAJOR = 27;
@@ -24,6 +25,9 @@ async function main(argv: string[]): Promise<void> {
     case "quickstart":
       await runQuickstart(args);
       return;
+    case "audit":
+      await runAudit(args);
+      return;
     case "doctor":
       runDoctor();
       return;
@@ -38,7 +42,7 @@ async function main(argv: string[]): Promise<void> {
 
 function normalizeCommand(command: string | undefined): Command {
   if (!command || command === "serve" || command === "start") return "serve";
-  if (command === "quickstart" || command === "doctor") return command;
+  if (command === "quickstart" || command === "audit" || command === "doctor") return command;
   if (command === "help" || command === "--help" || command === "-h") return "help";
   if (command === "version" || command === "--version" || command === "-v") return "version";
   throw new Error(`Unknown command: ${command}`);
@@ -57,6 +61,13 @@ interface QuickstartArgs {
   secretFile?: string;
   appendAgentInstructions: boolean;
   handoffWrites: boolean;
+}
+
+interface AuditArgs {
+  repositoryRoot: string;
+  json: boolean;
+  secretFile?: string;
+  handoffWrites?: boolean;
 }
 
 function parseQuickstartArgs(args: string[]): QuickstartArgs {
@@ -96,20 +107,77 @@ async function runQuickstart(args: string[]): Promise<void> {
   await waitForSignals(runtime.stop, "quickstart");
 }
 
+function parseAuditArgs(args: string[]): AuditArgs {
+  const positional: string[] = [];
+  const parsed: AuditArgs = { repositoryRoot: "", json: false };
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg === "--json") parsed.json = true;
+    else if (arg === "--no-handoff-writes") parsed.handoffWrites = false;
+    else if (arg === "--secret-file") {
+      const value = args[++index];
+      if (!value) throw new Error("--secret-file expects a file path.");
+      parsed.secretFile = value;
+    } else if (arg?.startsWith("-")) throw new Error(`Unknown audit option: ${arg}`);
+    else if (arg) positional.push(arg);
+  }
+  if (positional.length !== 1) throw new Error("Usage: reporelay audit <repository-root> [--json] [--secret-file <path>]");
+  parsed.repositoryRoot = positional[0] as string;
+  return parsed;
+}
+
+async function runAudit(args: string[]): Promise<void> {
+  const parsed = parseAuditArgs(args);
+  const secret = await resolveAuditBridgeSecret({ secretFile: parsed.secretFile });
+  const report = await runSecurityAudit({
+    repositoryRoot: parsed.repositoryRoot,
+    bridgeSecret: secret.secret,
+    bridgeSecretError: secret.error,
+    handoffWrites: parsed.handoffWrites,
+  });
+  if (parsed.json) console.log(JSON.stringify(report));
+  else console.log(formatSecurityAudit(report));
+  if (!report.passed) process.exitCode = 1;
+}
+
 function printQuickstartSummary(summary: QuickstartSummary): void {
   const handoffChanges = [
     ...summary.handoffInit.created.map((path) => `created ${path}`),
     ...summary.handoffInit.preserved.map((path) => `preserved ${path}`),
   ].join(", ");
-  console.log(`RepoRelay quickstart: ${summary.localMcpUrl}`);
-  console.log(`Approved repository: ${summary.repositoryRoot}`);
-  console.log(`Handoff files: ${handoffChanges}`);
-  console.log(`AGENTS.md: ${summary.handoffInit.agentsAction}`);
-  if (summary.handoffInit.agentsBackupPath) console.log(`AGENTS.md backup: ${summary.handoffInit.agentsBackupPath}`);
+  console.log("RepoRelay");
+  console.log("");
+  console.log("Repository");
+  console.log(`✓ ${summary.repositoryRoot}`);
+  console.log("");
+  console.log("Security");
+  console.log("✓ Loopback only");
+  console.log("✓ Authentication enabled");
+  console.log("✓ Repository containment active");
+  console.log("");
+  console.log("AI permissions");
+  console.log("✓ Read");
+  console.log("✓ Search");
+  console.log(summary.handoffWrites ? "✓ Fixed handoffs" : "— Fixed handoffs disabled");
+  console.log("");
+  console.log("Blocked");
+  console.log("✓ Shell");
+  console.log("✓ Git");
+  console.log("✓ Processes");
+  console.log("✓ Arbitrary writes");
+  console.log("");
+  console.log("MCP");
+  console.log("✓ Bridge running");
+  console.log("✓ Security checks passed");
+  console.log("✓ Tool surface verified");
+  console.log("");
+  console.log("Ready.");
+  console.log("");
+  console.log(`Local MCP: ${summary.localMcpUrl}`);
   console.log(`Bridge secret file: ${summary.bridgeSecretFile}`);
-  console.log(`Tools: ${summary.tools.join(", ")}`);
-  console.log(`Send the X-RepoRelay-Bridge-Secret header using the secret in that file.`);
-  console.log("For a remote reviewer, front the loopback bridge with an authenticated HTTPS tunnel.");
+  if (handoffChanges) console.log(`Handoff files: ${handoffChanges}`);
+  if (summary.handoffInit.agentsBackupPath) console.log(`AGENTS.md backup: ${summary.handoffInit.agentsBackupPath}`);
+  console.log("Next: Connect ChatGPT Web through an OpenAI Secure MCP Tunnel.");
   console.log("Press Ctrl+C to stop.");
 }
 
@@ -168,6 +236,7 @@ function printHelp(): void {
     "Usage:",
     "  reporelay serve           Start the authenticated loopback bridge",
     "  reporelay quickstart     Initialize handoff files and self-test the bridge",
+    "  reporelay audit <repo>   Verify repository, bridge, MCP surface, and containment",
     "  reporelay doctor         Show configuration and security status",
     "  reporelay help           Show this help",
     "  reporelay version        Print the installed version",
@@ -179,6 +248,11 @@ function printHelp(): void {
     "  --secret-file <path>     Bridge secret file",
     "  --append-agent-instructions",
     "  --no-handoff-writes      Expose only the four read-only tools",
+    "",
+    "Audit options:",
+    "  --json                   Emit stable machine-readable audit results",
+    "  --secret-file <path>     Protected bridge secret file (optional after quickstart)",
+    "  --no-handoff-writes      Verify the four-tool read-only surface",
     "",
     "The bridge requires X-RepoRelay-Bridge-Secret and never exposes shell, process, Git, patch, artifact, worktree, skill, subagent, or unrestricted write tools.",
   ].join("\n"));
