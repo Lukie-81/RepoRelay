@@ -210,7 +210,7 @@ async function verifyAdversarialFixture(handoffWrites: boolean): Promise<Securit
   const fixtureSecret = `reporelay-audit-${randomUUID()}-${randomUUID()}`;
 
   try {
-    runRoot = await mkdtemp(join(tmpdir(), "reporelay-audit-fixture-"));
+    runRoot = await realpath(await mkdtemp(join(tmpdir(), "reporelay-audit-fixture-")));
     workspaceRoot = join(runRoot, "workspace");
     outsideRoot = join(runRoot, "outside");
     await mkdir(join(workspaceRoot, ".ai-handoff"), { recursive: true });
