@@ -1,10 +1,17 @@
-# RepoRelay
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/reporelay-logo-dark.png">
+    <img src="docs/assets/reporelay-logo.png" width="440" alt="RepoRelay">
+  </picture>
+</p>
 
-**Give AI access to your repository — not your machine.**
+<p align="center"><b>Give AI access to your repository — not your machine.</b></p>
 
-[![CI](https://github.com/Lukie-81/RepoRelay/actions/workflows/ci.yml/badge.svg)](https://github.com/Lukie-81/RepoRelay/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D22.19%20%3C27-339933)](https://github.com/Lukie-81/RepoRelay/blob/main/package.json)
+<p align="center">
+  <a href="https://github.com/Lukie-81/RepoRelay/actions/workflows/ci.yml"><img src="https://github.com/Lukie-81/RepoRelay/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://github.com/Lukie-81/RepoRelay/blob/main/package.json"><img src="https://img.shields.io/badge/node-%3E%3D22.19%20%3C27-339933" alt="Node &gt;=22.19 &lt;27"></a>
+</p>
 
 RepoRelay is a security-focused MCP bridge that lets an AI client such as
 ChatGPT inspect one explicitly approved local repository — without exposing a
@@ -13,72 +20,7 @@ arbitrary writes. When you want changes made, the AI prepares a bounded task in
 a fixed handoff file, a separate local coding agent implements it with its own
 permissions, and the AI reviews the result.
 
-RepoRelay is a substantially modified, security-focused derivative of DevSpace
-v1.0.5 (`Waishnav/devspace`), adapted around a narrower AI-review and
-coding-agent handoff model. See
-[Upstream and project history](#upstream-and-project-history).
-
-RepoRelay is an independent open-source project. ChatGPT, Codex, and MCP are
-used only as descriptive names for supported clients and protocols.
-
-## Why RepoRelay?
-
-Most ways to connect an AI to local code give the agent a shell, a Git binary,
-and the whole filesystem. RepoRelay takes the opposite approach: the AI client
-gets a deliberately narrow tool surface over one repository you explicitly
-approve.
-
-| The AI client can                                          | The AI client cannot                       |
-| ---------------------------------------------------------- | ------------------------------------------ |
-| Read files inside the approved repository                  | Run shell commands                         |
-| Search and list repository content                         | Execute Git or other processes             |
-| Read project instructions such as `AGENTS.md`              | Browse files anywhere else on the machine  |
-| Update three fixed `.ai-handoff` files — only if you enable it | Create, edit, delete, or patch arbitrary files |
-
-Handoff writes are **optional and off by default**. When enabled
-(`DEVSPACE_HANDOFF_WRITES=1`), the three writers accept only content — never a
-destination path — and target three pre-existing files under `.ai-handoff/`.
-
-Three parties hold different authority:
-
-- The **AI client** is limited to the narrow tool surface above. RepoRelay
-  assumes it may be malicious.
-- The **coding agent** is a separate local program with whatever permissions
-  you grant it directly. RepoRelay neither constrains nor empowers it — a
-  handoff file coordinates work, it does not grant permissions.
-- **You** remain the authority for destructive actions, credentials,
-  deployment, publishing, and expanding what is exposed.
-
-## How it works
-
-```text
-AI / MCP client (e.g. ChatGPT Web)
-      |
-      |  authenticated MCP: loopback + optional HTTPS tunnel
-      v
- RepoRelay (chatgpt-review bridge)
-      |
-      |-- read/search ------------------->  the one approved repository
-      |
-      |-- optional fixed writes ---------->  .ai-handoff/
-      |                                       NEXT_TASK / REVIEW / STATE
-      |                                             |
-      |                                             v
-      |                                     coding agent (separate local actor)
-      |                                             |
-      |                                             |  implements + verifies,
-      |                                             |  writes LUNA_RESULT.md
-      |                                             v
-      |                                     AI reviews the result
-```
-
-- RepoRelay sits between the AI client and the approved repository and exposes
-  a deliberately narrow tool surface: four read tools, plus three optional
-  fixed writers.
-- The coding agent works locally with its own authorization and records its
-  result. RepoRelay never executes it — or any shell, Git, or process.
-- `.ai-handoff` files coordinate the loop; they never grant either side new
-  permissions.
+![RepoRelay architecture: an authenticated MCP client such as ChatGPT Web reaches the loopback chatgpt-review bridge (optionally through an HTTPS tunnel); the bridge exposes read and search tools over the one approved repository, while optional fixed writes target .ai-handoff files that coordinate a separate local coding agent whose result the AI reviews.](docs/assets/reporelay-hero.png)
 
 ## Quick start
 
@@ -162,6 +104,70 @@ script refuses to replace an existing `AGENTS.md` unless you pass
 Contributors should also run `npm run verify:release` (type checking, the
 full test suite, the authenticated bridge runtime test, and a production
 build) before proposing changes; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Why RepoRelay?
+
+Most ways to connect an AI to local code give the agent a shell, a Git binary,
+and the whole filesystem. RepoRelay takes the opposite approach: the AI client
+gets a deliberately narrow tool surface over one repository you explicitly
+approve.
+
+| The AI client can                                          | The AI client cannot                       |
+| ---------------------------------------------------------- | ------------------------------------------ |
+| Read files inside the approved repository                  | Run shell commands                         |
+| Search and list repository content                         | Execute Git or other processes             |
+| Read project instructions such as `AGENTS.md`              | Browse files anywhere else on the machine  |
+| Update three fixed `.ai-handoff` files — only if you enable it | Create, edit, delete, or patch arbitrary files |
+
+Handoff writes are **optional and off by default**. When enabled
+(`DEVSPACE_HANDOFF_WRITES=1`), the three writers accept only content — never a
+destination path — and target three pre-existing files under `.ai-handoff/`.
+
+Three parties hold different authority:
+
+- The **AI client** is limited to the narrow tool surface above. RepoRelay
+  assumes it may be malicious.
+- The **coding agent** is a separate local program with whatever permissions
+  you grant it directly. RepoRelay neither constrains nor empowers it — a
+  handoff file coordinates work, it does not grant permissions.
+- **You** remain the authority for destructive actions, credentials,
+  deployment, publishing, and expanding what is exposed.
+
+## How it works
+
+<details>
+<summary>Text version of the diagram</summary>
+
+```text
+AI / MCP client (e.g. ChatGPT Web)
+      |
+      |  authenticated MCP: loopback + optional HTTPS tunnel
+      v
+ RepoRelay (chatgpt-review bridge)
+      |
+      |-- read/search ------------------->  the one approved repository
+      |
+      |-- optional fixed writes ---------->  .ai-handoff/
+      |                                       NEXT_TASK / REVIEW / STATE
+      |                                             |
+      |                                             v
+      |                                     coding agent (separate local actor)
+      |                                             |
+      |                                             |  implements + verifies,
+      |                                             |  writes LUNA_RESULT.md
+      |                                             v
+      |                                     AI reviews the result
+```
+
+</details>
+
+- RepoRelay sits between the AI client and the approved repository and exposes
+  a deliberately narrow tool surface: four read tools, plus three optional
+  fixed writers.
+- The coding agent works locally with its own authorization and records its
+  result. RepoRelay never executes it — or any shell, Git, or process.
+- `.ai-handoff` files coordinate the loop; they never grant either side new
+  permissions.
 
 ## The constrained tool surface
 
@@ -298,6 +304,8 @@ RepoRelay is a substantially modified, security-focused derivative of
 carried through a previous engineering repository; the public repository starts
 from fresh Git history. DevSpace is the upstream project — current upstream
 development is independent and may differ substantially from that baseline.
+RepoRelay is an independent open-source project, and ChatGPT, Codex, and MCP
+are used only as descriptive names for supported clients and protocols.
 
 Added on top of that baseline, RepoRelay's own direction includes:
 
