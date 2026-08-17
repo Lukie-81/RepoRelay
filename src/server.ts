@@ -950,7 +950,7 @@ function createMcpServer(
     {
       name: config.toolMode === "chatgpt-review" ? "reporelay" : "devspace",
       title: config.toolMode === "chatgpt-review" ? "RepoRelay" : "DevSpace",
-      version: config.toolMode === "chatgpt-review" ? "1.1.2" : "0.1.0",
+      version: config.toolMode === "chatgpt-review" ? "1.1.3" : "0.1.0",
       description: config.toolMode === "chatgpt-review"
         ? "Canonical-path-confined repository review for AI clients with optional fixed handoff writes."
         : "Secure local coding workspace for MCP clients. Provides workspace-scoped file, search, edit, write, and shell tools.",

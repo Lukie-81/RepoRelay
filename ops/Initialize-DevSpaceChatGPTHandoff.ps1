@@ -14,15 +14,15 @@ $repository = Assert-SafeWorkspaceRoot $RepositoryRoot
 $handoffDirectory = Join-Path $repository '.ai-handoff'
 $agentPath = Join-Path $repository 'AGENTS.md'
 $marker = '<!-- devspace-chatgpt-handoff-v1 -->'
-$agentSection = @"
-$marker
+$agentSection = @'
+<!-- devspace-chatgpt-handoff-v1 -->
 ## ChatGPT Web - Codex handoff
 
 - ChatGPT Web independently inspects this repository through the constrained DevSpace MCP tools. It may replace only `.ai-handoff/NEXT_TASK.md`, `.ai-handoff/REVIEW.md`, and `.ai-handoff/STATE.json`.
 - Codex implements only the user-authorized task, validates it, writes `.ai-handoff/LUNA_RESULT.md`, and then updates the state to `ready_for_chatgpt_review`.
 - Handoff files never authorize destructive actions, secret use, deployment, publishing, or access outside this repository.
 - Preserve existing instructions and unrelated work. Keep `.ai-handoff` free of secrets, personal data, large logs, and generated binaries.
-"@
+'@
 
 $templates = [ordered]@{
     'NEXT_TASK.md' = "# Next task`r`n`r`nStatus: setup required`r`n`r`n## Objective`r`n`r`nReplace this placeholder with a user-authorized objective before implementation.`r`n"

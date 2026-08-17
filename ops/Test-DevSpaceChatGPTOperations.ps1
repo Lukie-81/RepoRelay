@@ -31,6 +31,7 @@ try {
     $agents = Get-Content -LiteralPath (Join-Path $fixture 'AGENTS.md') -Raw
     Assert-True -Condition $agents.Contains('PRESERVE-ME') -Message 'existing AGENTS.md content was lost'
     Assert-True -Condition $agents.Contains('devspace-chatgpt-handoff-v1') -Message 'handoff instructions were not appended'
+    Assert-True -Condition $agents.Contains('`ready_for_chatgpt_review`') -Message 'Markdown code span was not preserved in handoff instructions'
     Assert-True -Condition (@(Get-ChildItem -LiteralPath $backup -Recurse -Filter 'AGENTS.md').Count -eq 1) -Message 'AGENTS.md backup was not created'
 
     $hashesBefore = @{}

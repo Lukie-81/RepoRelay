@@ -1,6 +1,6 @@
 {
   "name": "reporelay",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "A local-first MCP bridge for tightly controlled repository review and structured coding-agent handoffs.",
   "type": "module",
   "main": "dist/server.js",
@@ -36,6 +36,7 @@
     "install:ngrok": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-ngrok.ps1",
     "dev": "node scripts/dev-server.mjs",
     "postinstall": "node scripts/fix-node-pty-permissions.mjs",
+    "prepack": "npm run build",
     "start": "node dist/cli.js serve",
     "test": "tsx src/config.test.ts && tsx src/review-files.test.ts && tsx src/chatgpt-review-mcp.test.ts && tsx src/chatgpt-bridge-auth.test.ts && tsx src/incoming-artifacts.test.ts && tsx src/artifact-download.test.ts && tsx src/pi-tools.test.ts && tsx src/server-performance.test.ts && tsx src/server-auth-order.test.ts && tsx src/ui/card-types.test.ts && tsx src/ui/patch-display.test.ts && tsx src/ui/tool-display.test.ts && tsx src/apply-patch.test.ts && tsx src/process-platform.test.ts && tsx src/process-sessions.test.ts && tsx src/mcp-sessions.test.ts && tsx src/server-shutdown.test.ts && tsx src/local-agent-runtime.test.ts && tsx src/local-agent-adapters.test.ts && tsx src/local-agent-availability.test.ts && tsx src/local-agent-profiles.test.ts && tsx src/local-agent-targets.test.ts && tsx src/local-agent-store.test.ts && tsx src/roots.test.ts && tsx src/skills.test.ts && tsx src/workspaces.test.ts && tsx src/review-checkpoints.test.ts && tsx src/oauth-store.test.ts && tsx src/cli.test.ts && tsx src/quickstart.test.ts",
     "test:chatgpt-review": "tsx src/config.test.ts && tsx src/review-files.test.ts && tsx src/chatgpt-review-mcp.test.ts && tsx src/chatgpt-bridge-auth.test.ts && tsx src/quickstart.test.ts",

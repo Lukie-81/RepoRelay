@@ -9,6 +9,7 @@ import { createServer } from "./server.js";
 const root = await mkdtemp(join(tmpdir(), "devspace-auth-order-test-"));
 const running = createServer(loadConfig({
   DEVSPACE_CONFIG_DIR: join(root, "config"),
+  DEVSPACE_STATE_DIR: join(root, "state"),
   DEVSPACE_ALLOWED_ROOTS: root,
   DEVSPACE_OAUTH_OWNER_TOKEN: "test-owner-token-that-is-long-enough",
   HOST: "127.0.0.1",
