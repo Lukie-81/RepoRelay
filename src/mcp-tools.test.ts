@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -10,7 +10,7 @@ import { loadConfig } from "./config.js";
 import { registerRepoRelayTools } from "./server.js";
 import { WorkspaceRegistry } from "./workspaces.js";
 
-const runRoot = await mkdtemp(join(tmpdir(), "reporelay-mcp-tools-test-"));
+const runRoot = await realpath(await mkdtemp(join(tmpdir(), "reporelay-mcp-tools-test-")));
 const workspaceRoot = join(runRoot, "workspace");
 const outsideRoot = join(runRoot, "outside");
 const outsideMarker = `outside-${randomUUID()}`;

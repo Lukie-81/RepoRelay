@@ -52,4 +52,8 @@ jobs:
       - name: Doctor
         env:
           REPORELAY_ALLOWED_ROOTS: ${{ steps.canonical_workspace.outputs.path }}
+          REPORELAY_HOST: 127.0.0.1
+          REPORELAY_BRIDGE_AUTH: "1"
+          REPORELAY_BRIDGE_SECRET: "reporelay-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}"
+          REPORELAY_ALLOWED_HOSTS: 127.0.0.1
         run: node dist/cli.js doctor

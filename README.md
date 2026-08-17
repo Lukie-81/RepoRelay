@@ -160,25 +160,32 @@ approved repository
 The first-time flow is:
 
 1. Run `quickstart` and keep the local bridge running.
-2. Configure the Secure MCP Tunnel to forward to the printed local MCP URL and
-   inject `X-RepoRelay-Bridge-Secret` from protected file-backed storage. Never
-   paste the secret into ChatGPT, source, or a tunnel profile.
+2. In OpenAI Platform tunnel settings, create or select a tunnel and note its
+   `tunnel_id`. Run the current `tunnel-client` inside the same local boundary,
+   configure it to reach the printed MCP URL, and supply the
+   `X-RepoRelay-Bridge-Secret` header from protected local file-backed storage.
+   Keep the tunnel runtime API key protected as well; never paste either value
+   into ChatGPT, source, or tracked configuration.
 3. Use the existing Windows lifecycle scripts to verify the local side and the
    tunnel client. They run the tunnel client's `doctor --explain` checks, keep
    administration listeners on loopback, and test the exact RepoRelay tool
    surface. See [`docs/chatgpt-web.md`](docs/chatgpt-web.md).
 4. In ChatGPT Web, enable developer mode if your workspace requires it, create
-   a custom MCP app, enter the HTTPS tunnel endpoint, and use **Scan Tools**.
-   Review the returned tools before creating the app; the expected surface is
-   listed above and in [`SECURITY.md`](SECURITY.md).
+   a developer-mode custom app, choose **Tunnel** under **Connection**, and
+   select the available tunnel or enter its `tunnel_id`. Follow the current
+   app flow for required metadata/authentication and tool scanning. Do not
+   enter `127.0.0.1` or `localhost` as a ChatGPT-hosted endpoint. Review the
+   returned tools before creating the app; the expected surface is listed above
+   and in [`SECURITY.md`](SECURITY.md).
 5. Start a new chat, select the enabled app, and confirm safe list/read/search
    operations. Re-scan after any server change.
 
-Read OpenAI's [current developer-mode and MCP app instructions](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt)
-for plan and UI details that RepoRelay cannot control. RepoRelay does not add a
-`connect chatgpt` command: the tunnel client and ChatGPT workspace credentials
-remain operator-managed, so automating them would add state and secret
-ownership without improving the security boundary.
+Read OpenAI's [Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+and [current developer-mode and MCP app instructions](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt)
+for tunnel permissions, plan availability, and UI details that RepoRelay cannot
+control. RepoRelay does not add a `connect chatgpt` command: the tunnel client
+and ChatGPT workspace credentials remain operator-managed, so automating them
+would add state and secret ownership without improving the security boundary.
 
 ## Windows lifecycle scripts
 

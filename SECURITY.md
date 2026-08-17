@@ -33,6 +33,10 @@ persistence, or UI workspace management.
 - Reads, searches, results, and handoff documents have bounded sizes.
 - Handoff targets must already exist and cannot be selected by the caller.
 - OAuth discovery and authorization routes are absent.
+- Quickstart bridge-secret files use owner-only mode on POSIX systems; on
+  Windows quickstart removes inherited broad read access and grants read access
+  only to the current user and `SYSTEM`, failing closed if that ACL operation
+  cannot be applied.
 
 ## `reporelay audit`
 

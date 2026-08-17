@@ -1,8 +1,8 @@
 # ChatGPT Web connection
 
 ChatGPT Web does not call a private developer machine's `localhost` directly.
-ChatGPT connects to a remote MCP endpoint. For a RepoRelay bridge that must
-remain local, the supported shape is:
+ChatGPT uses the OpenAI-hosted Secure MCP Tunnel endpoint, while the local
+tunnel client forwards requests to RepoRelay:
 
 ```text
 ChatGPT Web
@@ -33,12 +33,23 @@ one approved repository
 2. Keep the printed local MCP URL and the protected bridge-secret file path.
    The secret value must stay in protected local storage. RepoRelay never
    prints it and it must not be copied into ChatGPT, Git, a handoff file, or a
-   tunnel profile as inline text.
+   tunnel profile as inline text. On POSIX systems the quickstart file uses
+   restrictive owner-only mode; on Windows the quickstart applies a file ACL
+   that removes inherited broad read access and grants read access only to the
+   current user and `SYSTEM`.
 
-3. Configure the Secure MCP Tunnel to forward to that local MCP URL and inject
-   `X-RepoRelay-Bridge-Secret` for discovery and runtime requests. The tunnel
-   client and its control-plane credentials are external operator-managed
+3. In OpenAI Platform tunnel settings, create or select a tunnel and record its
+   `tunnel_id`. Configure the current `tunnel-client` to use that identity, its
+   protected runtime API key, and the local RepoRelay MCP URL. Configure the
+   local client/profile to send `X-RepoRelay-Bridge-Secret` from protected
+   file-backed storage for discovery and runtime requests. The tunnel client
+   and its control-plane credentials are external operator-managed
    dependencies; RepoRelay does not download or store them.
+
+See OpenAI's [Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+for the current tunnel-client setup, permissions, and release guidance. Keep
+the runbook pointed at OpenAI's current documentation rather than a pinned
+client version or guessed UI labels.
 
 On Windows, the existing lifecycle scripts validate the local side and the
 current tunnel-client layout:
@@ -61,21 +72,23 @@ Use `-SkipTunnel` when validating only the local bridge on an isolated port.
 
 ## ChatGPT Web side
 
-The exact labels depend on the ChatGPT plan and workspace settings. The current
-OpenAI instructions are in [Developer mode and MCP apps in ChatGPT](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt).
+The exact labels and permissions depend on the ChatGPT plan and workspace. The
+current OpenAI instructions are in [Developer mode and MCP apps in ChatGPT](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt).
 
 1. Enable developer mode or obtain the workspace permission required to create
    a custom MCP app.
-2. Create a custom MCP app and enter the HTTPS endpoint supplied by the Secure
-   MCP Tunnel. Do not enter `127.0.0.1` as a ChatGPT-hosted endpoint.
-3. Select **Scan Tools** and review the discovered surface before creating or
-   enabling the app. RepoRelay's expected surface is exactly four tools by
-   default, or seven when fixed handoff writes are explicitly enabled:
+2. Create a developer-mode app, choose **Tunnel** under **Connection**, and
+   select an available tunnel or paste the valid `tunnel_id`. Do not enter
+   `127.0.0.1` or `localhost` as a ChatGPT-hosted endpoint. If the current app
+   flow asks for metadata, authentication, or **Scan Tools**, complete those
+   steps and review the discovered surface before creating or enabling the app.
+   RepoRelay's expected surface is exactly four tools by default, or seven when
+   fixed handoff writes are explicitly enabled:
    `open_workspace`, `list_files`, `read_file`, `search_files`, and optionally
    `write_next_task`, `write_review`, `update_handoff_state`.
-4. Start a new chat, select the enabled app, and test `open_workspace`, list,
+3. Start a new chat, select the enabled app, and test `open_workspace`, list,
    read, and literal search operations.
-5. Confirm that `.env`, `.git`, outside-root paths, redirecting links, and
+4. Confirm that `.env`, `.git`, outside-root paths, redirecting links, and
    arbitrary write requests are rejected. If the tool list changes, stop and
    re-run `reporelay audit <repository> --json` before refreshing the app.
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -20,6 +20,12 @@ const secret = randomBytes(32).toString("base64url");
 const secretFile = join(runRoot, "secrets", "bridge-secret.txt");
 await mkdir(join(runRoot, "secrets"), { recursive: true });
 await writeFile(secretFile, `${secret}\n`, { encoding: "utf8", mode: 0o600 });
+const auditFixturePrefix = "reporelay-audit-fixture-";
+const fixtureNamesBeforeAudit = new Set(
+  (await readdir(tmpdir(), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith(auditFixturePrefix))
+    .map((entry) => entry.name),
+);
 
 const good = await runSecurityAudit({
   repositoryRoot: workspace,
@@ -36,9 +42,20 @@ assert.equal(good.schemaVersion, 1);
 assert.ok(good.checks.some((check) => check.id === "bridge.auth.missing" && check.status === "pass"));
 assert.ok(good.checks.some((check) => check.id === "bridge.auth.duplicate" && check.status === "pass"));
 assert.ok(good.checks.some((check) => check.id === "containment.symlink_junction" && check.status === "pass"));
+assert.ok(good.checks.some((check) => check.id === "containment.fixture_cleanup" && check.status === "pass"));
 assert.ok(good.checks.some((check) => check.id === "handoff.agent_result_protected" && check.status === "pass"));
 assert.match(formatSecurityAudit(good), /RESULT: PASS/);
 assert.doesNotMatch(JSON.stringify(good), new RegExp(secret));
+const fixtureNamesAfterAudit = new Set(
+  (await readdir(tmpdir(), { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith(auditFixturePrefix))
+    .map((entry) => entry.name),
+);
+assert.deepEqual(
+  [...fixtureNamesAfterAudit].filter((name) => !fixtureNamesBeforeAudit.has(name)),
+  [],
+  "a successful audit must remove its disposable adversarial fixture",
+);
 
 const readOnly = await runSecurityAudit({
   repositoryRoot: workspace,
@@ -95,6 +112,34 @@ const jsonReport = JSON.parse(jsonRun.stdout) as { passed: boolean; checks: unkn
 assert.equal(jsonReport.passed, true);
 assert.ok(Array.isArray(jsonReport.checks));
 assert.doesNotMatch(jsonRun.stdout, new RegExp(secret));
+
+const invalidDoctor = spawnSync(
+  process.execPath,
+  ["--import", "tsx", "src/cli.ts", "doctor"],
+  { cwd: process.cwd(), env: { ...childEnv, REPORELAY_ALLOWED_ROOTS: workspace }, encoding: "utf8" },
+);
+assert.notEqual(invalidDoctor.status, 0);
+assert.match(invalidDoctor.stdout, /Configuration: invalid/);
+
+const validDoctor = spawnSync(
+  process.execPath,
+  ["--import", "tsx", "src/cli.ts", "doctor"],
+  {
+    cwd: process.cwd(),
+    env: {
+      ...childEnv,
+      REPORELAY_ALLOWED_ROOTS: workspace,
+      REPORELAY_HOST: "127.0.0.1",
+      REPORELAY_BRIDGE_AUTH: "1",
+      REPORELAY_BRIDGE_SECRET: secret,
+      REPORELAY_ALLOWED_HOSTS: "127.0.0.1",
+    },
+    encoding: "utf8",
+  },
+);
+assert.equal(validDoctor.status, 0, validDoctor.stderr);
+assert.match(validDoctor.stdout, /Configuration: valid/);
+assert.doesNotMatch(validDoctor.stdout, new RegExp(secret));
 
 const failedJsonRun = spawnSync(
   process.execPath,

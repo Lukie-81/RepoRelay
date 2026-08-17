@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { link, lstat, mkdir, mkdtemp, readFile, realpath, symlink, writeFile } from "node:fs/promises";
+import { link, lstat, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { homedir } from "node:os";
 import { tmpdir } from "node:os";
@@ -200,9 +200,12 @@ function buildAuditEnvironment(repositoryRoot: string, bridgeSecret: string, env
 
 async function verifyAdversarialFixture(handoffWrites: boolean): Promise<SecurityCheck[]> {
   const checks: SecurityCheck[] = [];
-  let runRoot: string;
-  let workspaceRoot: string;
-  let outsideRoot: string;
+  let runRoot: string | undefined;
+  let workspaceRoot: string | undefined;
+  let outsideRoot: string | undefined;
+  let running: ReturnType<typeof createServer> | undefined;
+  let httpServer: Server | undefined;
+  let client: Client | undefined;
   const outsideMarker = `outside-${randomUUID()}`;
   const fixtureSecret = `reporelay-audit-${randomUUID()}-${randomUUID()}`;
 
@@ -229,29 +232,29 @@ async function verifyAdversarialFixture(handoffWrites: boolean): Promise<Securit
     await link(join(outsideRoot, "outside.txt"), join(workspaceRoot, "hard-link.txt"));
   } catch (error) {
     checks.push(failure("containment.fixture", "containment", `Adversarial containment fixture could not be created: ${errorMessage(error)}.`));
-    return checks;
   }
 
-  let config: ServerConfig;
   try {
-    config = loadConfig({
-      REPORELAY_ALLOWED_ROOTS: workspaceRoot,
-      REPORELAY_BRIDGE_SECRET: fixtureSecret,
-      REPORELAY_BRIDGE_AUTH: "1",
-      REPORELAY_HANDOFF_WRITES: handoffWrites ? "1" : "0",
-      REPORELAY_ALLOWED_HOSTS: "127.0.0.1",
-      REPORELAY_LOG_LEVEL: "silent",
-      REPORELAY_LOG_REQUESTS: "0",
-      REPORELAY_LOG_TOOL_CALLS: "0",
-    });
-  } catch (error) {
-    checks.push(failure("containment.configuration", "containment", `Adversarial fixture configuration failed: ${errorMessage(error)}.`));
-    return checks;
-  }
-  const running = createServer(config);
-  let httpServer: Server | undefined;
-  let client: Client | undefined;
-  try {
+    if (!workspaceRoot || !outsideRoot) return checks;
+
+    let config: ServerConfig;
+    try {
+      config = loadConfig({
+        REPORELAY_ALLOWED_ROOTS: workspaceRoot,
+        REPORELAY_BRIDGE_SECRET: fixtureSecret,
+        REPORELAY_BRIDGE_AUTH: "1",
+        REPORELAY_HANDOFF_WRITES: handoffWrites ? "1" : "0",
+        REPORELAY_ALLOWED_HOSTS: "127.0.0.1",
+        REPORELAY_LOG_LEVEL: "silent",
+        REPORELAY_LOG_REQUESTS: "0",
+        REPORELAY_LOG_TOOL_CALLS: "0",
+      });
+    } catch (error) {
+      checks.push(failure("containment.configuration", "containment", `Adversarial fixture configuration failed: ${errorMessage(error)}.`));
+      return checks;
+    }
+
+    running = createServer(config);
     httpServer = await listenEphemeral(running, config.host);
     const address = httpServer.address();
     if (typeof address === "string" || address === null) throw new Error("Fixture listener did not expose a TCP address.");
@@ -313,9 +316,27 @@ async function verifyAdversarialFixture(handoffWrites: boolean): Promise<Securit
   } catch (error) {
     checks.push(failure("containment.integration", "containment", `Adversarial MCP fixture checks could not complete: ${errorMessage(error)}.`));
   } finally {
-    await client?.close().catch(() => undefined);
-    if (httpServer) await shutdownHttpServer(httpServer, running.close).catch(() => undefined);
-    else await running.close().catch(() => undefined);
+    try {
+      await client?.close();
+    } catch (error) {
+      checks.push(failure("containment.fixture_client_shutdown", "containment", `Adversarial fixture client could not close cleanly: ${errorMessage(error)}.`));
+    }
+    if (running) {
+      try {
+        if (httpServer) await shutdownHttpServer(httpServer, running.close);
+        else await running.close();
+      } catch (error) {
+        checks.push(failure("containment.fixture_server_shutdown", "containment", `Adversarial fixture server could not close cleanly: ${errorMessage(error)}.`));
+      }
+    }
+    if (runRoot) {
+      try {
+        await rm(runRoot, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+        checks.push(check("containment.fixture_cleanup", "containment", true, "Temporary adversarial audit fixtures are removed after the check."));
+      } catch (error) {
+        checks.push(failure("containment.fixture_cleanup", "containment", `Temporary adversarial audit fixtures could not be removed: ${errorMessage(error)}.`));
+      }
+    }
   }
   return checks;
 }

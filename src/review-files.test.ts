@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { link, mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import { link, mkdir, mkdtemp, readFile, realpath, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -10,7 +10,7 @@ import {
   writeHandoffDocument,
 } from "./review-files.js";
 
-const runRoot = await mkdtemp(join(tmpdir(), "reporelay-review-files-test-"));
+const runRoot = await realpath(await mkdtemp(join(tmpdir(), "reporelay-review-files-test-")));
 const workspace = join(runRoot, "workspace");
 const outside = join(runRoot, "outside");
 await mkdir(join(workspace, ".ai-handoff"), { recursive: true });

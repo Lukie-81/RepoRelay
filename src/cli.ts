@@ -224,6 +224,7 @@ function runDoctor(): void {
     console.log("OAuth routes: absent");
   } catch (error) {
     console.log(`Configuration: invalid (${error instanceof Error ? error.message : String(error)})`);
+    process.exitCode = 1;
   }
 }
 
