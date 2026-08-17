@@ -7,49 +7,30 @@
 
 <p align="center"><b>Give AI access to your repository &mdash; not your machine.</b></p>
 
-RepoRelay lets ChatGPT safely inspect one local code repository without giving
-it shell access, Git, process execution, arbitrary file writes, or access to
-the rest of your computer.
+<p align="center">RepoRelay lets ChatGPT safely inspect one local repository
+without giving it control of the rest of your computer.</p>
 
-## What ChatGPT can and cannot do
+<p align="center">
+  <a href="https://github.com/Lukie-81/RepoRelay/actions/workflows/ci.yml"><img src="https://github.com/Lukie-81/RepoRelay/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
+  <a href="#requirements-and-platform-support"><img src="https://img.shields.io/badge/node-%3E%3D22.19%20%3C27-green.svg" alt="Node.js >=22.19 <27"></a>
+  <img src="https://img.shields.io/badge/protocol-MCP-6e5494.svg" alt="Model Context Protocol">
+</p>
 
-| ChatGPT can | ChatGPT cannot |
-| --- | --- |
-| Read safe files | Run shell or PowerShell |
-| Search code | Use Git |
-| List directories | Run processes |
-| Access one approved repository | Browse the rest of your computer |
-| Use optional fixed handoff writes | Arbitrarily edit or delete files |
+<p align="center">
+  <img src="docs/assets/reporelay-hero.png" width="720" alt="RepoRelay architecture: an authenticated AI reviewer reaches the loopback bridge, which exposes bounded read and search access to one approved repository and optional fixed handoff writers for a separate implementer.">
+</p>
 
-`.env`, `.git`, private keys, credential stores, outside-root paths,
-symlink/junction escapes, and similar sensitive paths are blocked.
+<p align="center"><b>ChatGPT Web &rarr; Secure MCP Tunnel &rarr; tunnel-client &rarr; RepoRelay &rarr; one approved repository</b></p>
 
-## How it works
+<p align="center"><b>Read safe files &middot; Search code &middot; One approved repository &middot; No shell &middot; No Git &middot; No arbitrary writes</b></p>
 
-MCP (Model Context Protocol) is the standard that lets ChatGPT call tools.
-ChatGPT is the MCP client. RepoRelay is the local MCP server and security
-boundary: it decides what ChatGPT may access and exposes exactly one approved
-repository at a time. `tunnel-client` is only the secure networking pipe.
-
-```text
-ChatGPT Web
-      ↓
-OpenAI Secure MCP Tunnel
-      ↓
-tunnel-client
-      ↓
-RepoRelay
-      ↓
-one approved local repository
-```
-
-| Component | Job |
-| --- | --- |
-| ChatGPT | MCP client — chooses RepoRelay tools. |
-| Secure MCP Tunnel | Carries traffic from ChatGPT to your computer. |
-| `tunnel-client` | Local network forwarder; points the tunnel at RepoRelay. |
-| RepoRelay | MCP server + security boundary; enforces authentication and allowed access. |
-| Repository | The one directory ChatGPT is allowed to inspect. |
+<p align="center">
+  <a href="#start-here">Quick Start</a> &middot;
+  <a href="#in-chatgpt-web">ChatGPT Web Setup</a> &middot;
+  <a href="#switch-repositories">Switch Repositories</a> &middot;
+  <a href="#security-summary">Security</a>
+</p>
 
 ## Start here
 
@@ -296,6 +277,21 @@ BLOCKED
 If the sensitive-file request succeeds, or the tool list is unexpected, stop
 and run the audit before continuing.
 
+## How it works
+
+MCP (Model Context Protocol) is the standard that lets ChatGPT call tools.
+ChatGPT is the MCP client. RepoRelay is the local MCP server and security
+boundary: it decides what ChatGPT may access and exposes exactly one approved
+repository at a time. `tunnel-client` is only the secure networking pipe.
+
+| Component | Job |
+| --- | --- |
+| ChatGPT | MCP client — chooses RepoRelay tools. |
+| Secure MCP Tunnel | Carries traffic from ChatGPT to your computer. |
+| `tunnel-client` | Local network forwarder; points the tunnel at RepoRelay. |
+| RepoRelay | MCP server + security boundary; enforces authentication and allowed access. |
+| Repository | The one directory ChatGPT is allowed to inspect. |
+
 ## You're connected — now what?
 
 Use prompts like these:
@@ -404,12 +400,6 @@ The client must support:
 
 Use the MCP URL printed by quickstart; `7676` is the default port. See
 [advanced configuration](docs/configuration.md) for local client settings.
-
-## Full architecture
-
-The setup above is the operating path. This image reinforces the same boundary:
-
-![RepoRelay architecture: an authenticated AI reviewer reaches the loopback bridge, which exposes bounded read and search access to one approved repository and optional fixed handoff writers for a separate implementer.](docs/assets/reporelay-hero.png)
 
 ## Optional coding-agent handoff
 
