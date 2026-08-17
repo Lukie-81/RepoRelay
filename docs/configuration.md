@@ -1,44 +1,28 @@
-# Configuration reference
+# RepoRelay configuration
 
-Copy [`.env.example`](../.env.example) to an untracked `.env` file. The
-PowerShell operations scripts also accept equivalent parameters.
+RepoRelay starts only as an authenticated loopback bridge. Configuration is
+environment-based so secrets can come from protected operator storage without
+being persisted in the repository.
 
-## Hardened bridge settings
+| Variable | Required | Meaning |
+| --- | --- | --- |
+| `REPORELAY_HOST` | no | Must be `127.0.0.1`; defaults to it. |
+| `REPORELAY_PORT` | no | Loopback port; defaults to `7676`. |
+| `REPORELAY_ALLOWED_ROOTS` | yes in practice | Exactly one existing approved repository directory. |
+| `REPORELAY_BRIDGE_AUTH` | no | Must be `1`; unauthenticated mode does not exist. |
+| `REPORELAY_BRIDGE_SECRET` | yes | At least 32 characters. |
+| `REPORELAY_HANDOFF_WRITES` | no | `1` enables the three fixed writers; default `0`. |
+| `REPORELAY_PUBLIC_BASE_URL` | no | Local URL by default; non-loopback values must use HTTPS. |
+| `REPORELAY_ALLOWED_HOSTS` | no | Explicit comma-separated host allowlist; wildcards are rejected. |
+| `REPORELAY_LOG_LEVEL` | no | `silent`, `error`, `warn`, `info`, or `debug`. |
+| `REPORELAY_LOG_FORMAT` | no | `json` or `pretty`. |
+| `REPORELAY_LOG_REQUESTS` | no | Request logging; default `1`. |
+| `REPORELAY_LOG_TOOL_CALLS` | no | Tool-call logging; default `1`. |
+| `REPORELAY_CONFIG_DIR` | no | Optional location used by quickstart for the protected secret file. |
 
-| Variable | Required value or rule |
-| --- | --- |
-| `HOST` | `127.0.0.1` |
-| `DEVSPACE_ALLOWED_ROOTS` | Exactly one absolute, existing repository path |
-| `DEVSPACE_TOOL_MODE` | `chatgpt-review` |
-| `DEVSPACE_CHATGPT_BRIDGE_AUTH` | `1` |
-| `DEVSPACE_CHATGPT_BRIDGE_SECRET` | A unique random value of at least 32 characters |
-| `DEVSPACE_HANDOFF_WRITES` | `1` to enable the three fixed handoff writers; otherwise `0` |
-| `DEVSPACE_PUBLIC_BASE_URL` | The exact HTTPS tunnel origin when a tunnel is used |
-| `DEVSPACE_ALLOWED_HOSTS` | The tunnel hostname, not `*` |
-| `DEVSPACE_WIDGETS` | `off` for the review bridge |
-| `DEVSPACE_ARTIFACTS` | `0` for the review bridge |
-| `DEVSPACE_SKILLS` | `0` for the review bridge |
-| `DEVSPACE_SUBAGENTS` | `0` for the review bridge |
+The header name is `X-RepoRelay-Bridge-Secret`. Header count is checked from
+the raw request, so duplicate values are rejected. The secret is never printed
+by the CLI or stored in runtime metadata.
 
-Do not commit `.env`. The committed `.env.example` contains placeholders only.
-
-## Tool modes
-
-`chatgpt-review` is the default and the only public-safe profile documented for
-ChatGPT. It exposes four read-only repository tools and, when explicitly
-enabled, three writers restricted to `.ai-handoff`.
-
-Other modes (`minimal`, `full`, and `codex`) are privileged compatibility
-surfaces. Depending on mode, they can expose generic writes or command/process
-execution. They are outside the hardened bridge security claim and must not be
-made available to an untrusted client.
-
-## Workspace selection
-
-The approved root is fixed when the server starts. `open_workspace` can select
-only that root; it cannot add a new root or escape it. To change repositories,
-stop the service, update the approved root, initialize that repository's
-handoff directory, and restart.
-
-See [Security](../SECURITY.md) and
-[Review hardening](chatgpt-review-hardening.md) for the enforced invariants.
+The server does not load OAuth, database, agent, skill, artifact, or UI
+configuration. Those inherited systems are not part of RepoRelay.

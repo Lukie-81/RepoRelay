@@ -1,12 +1,10 @@
 # RepoRelay operations
 
-These Windows PowerShell scripts manage the hardened `chatgpt-review` bridge.
-They derive the source checkout from their own location and do not require a
-machine-specific installation path.
+RepoRelay's Windows scripts manage the authenticated loopback bridge. They use
+the checkout containing the script as the source of truth and default runtime
+records to `%LOCALAPPDATA%\RepoRelay`.
 
-## Before starting
-
-From the repository root:
+## Prepare and verify
 
 ```powershell
 npm ci
@@ -14,139 +12,103 @@ npm run verify:release
 ```
 
 The approved repository must be an existing canonical directory narrower than
-the Windows user profile. It must contain these regular files:
+the Windows user profile and must contain these regular files:
 
 ```text
 .ai-handoff/NEXT_TASK.md
 .ai-handoff/REVIEW.md
+.ai-handoff/RESULT.md
 .ai-handoff/STATE.json
-.ai-handoff/LUNA_RESULT.md
 ```
 
-Preview or apply the handoff layout with
-`Initialize-DevSpaceChatGPTHandoff.ps1` as documented in `README.md`.
-
-Keep the bridge secret, tunnel control-plane key, tunnel binary, and tunnel
-profile outside every repository. The default protected runtime location is
-`%LOCALAPPDATA%\DevSpaceChatGPT`.
-
-## Local validation
-
-Start without a tunnel on an isolated port:
+Preview or apply the layout with:
 
 ```powershell
-.\ops\Start-DevSpaceChatGPT.ps1 `
+.\ops\Initialize-RepoRelayHandoff.ps1 -RepositoryRoot "C:\path\to\approved-repository" -WhatIf
+.\ops\Initialize-RepoRelayHandoff.ps1 -RepositoryRoot "C:\path\to\approved-repository" -Apply
+```
+
+An existing `AGENTS.md` is preserved; pass `-AppendAgentInstructions` only
+after reviewing the external backup behavior.
+
+Keep bridge secrets, tunnel credentials, tunnel binaries, and tunnel profiles
+outside every repository. The default bridge secret is
+`%LOCALAPPDATA%\RepoRelay\reporelay-bridge-secret.txt`.
+
+## Local loopback validation
+
+```powershell
+.\ops\Start-RepoRelay.ps1 `
   -WorkspaceRoot "C:\path\to\approved-repository" `
-  -BridgeSecretFile "C:\path\outside-repositories\bridge-secret.txt" `
+  -BridgeSecretFile "C:\path\outside\reporelay-bridge-secret.txt" `
   -SkipTunnel `
   -Port 7677
+
+.\ops\Test-RepoRelay.ps1 -WorkspaceRoot "C:\path\to\approved-repository"
 ```
 
-The bridge-secret file must contain at least 32 random characters. The script
-does not print the value.
+The secret file must contain at least 32 random characters. The scripts verify
+loopback ownership, unauthenticated rejection, the exact seven-tool surface,
+and that recorded logs do not contain the secret.
 
-Validate the recorded process and security surface:
+## Optional HTTPS tunnel
 
-```powershell
-.\ops\Test-DevSpaceChatGPT.ps1 `
-  -WorkspaceRoot "C:\path\to\approved-repository"
-```
-
-## Tunnel-backed start
-
-The OpenAI Secure MCP Tunnel client is not bundled. Follow OpenAI's current
-secure-tunnel documentation, then supply its external paths:
+The external secure MCP tunnel client is not bundled. Configure it to forward
+to `127.0.0.1:7676`, inject `X-RepoRelay-Bridge-Secret` for discovery and
+runtime requests, and keep its administration listener on loopback. Verify
+health, readiness, probe status, and control-plane polling before treating a
+tunnel as operational.
 
 ```powershell
-.\ops\Start-DevSpaceChatGPT.ps1 `
+.\ops\Start-RepoRelay.ps1 `
   -WorkspaceRoot "C:\path\to\approved-repository" `
-  -TunnelRoot "C:\path\outside-repositories\tunnel-client" `
-  -BridgeSecretFile "C:\path\outside-repositories\bridge-secret.txt" `
-  -ControlPlaneApiKeyFile "C:\path\outside-repositories\control-plane-key.txt"
-```
+  -TunnelRoot "C:\path\outside\tunnel-client" `
+  -BridgeSecretFile "C:\path\outside\reporelay-bridge-secret.txt" `
+  -ControlPlaneApiKeyFile "C:\path\outside\control-plane-key.txt"
 
-The tunnel profile must forward to `127.0.0.1:7676`, inject the same bridge
-secret for discovery and runtime requests, and keep its administration
-listener on loopback. The scripts require both shallow health and successful
-control-plane polling; `/readyz` alone is not acceptance evidence.
-
-`Protect-DevSpaceChatGPTTunnel.ps1` can migrate an older inline key into a
-protected file. It requires the exposed workspace explicitly:
-
-```powershell
-.\ops\Protect-DevSpaceChatGPTTunnel.ps1 `
-  -TunnelRoot "C:\path\outside-repositories\tunnel-client" `
+.\ops\Protect-RepoRelayTunnel.ps1 `
+  -TunnelRoot "C:\path\outside\tunnel-client" `
   -ExposedWorkspace "C:\path\to\approved-repository" `
   -WhatIf
 ```
 
-Review `-WhatIf` output before allowing changes.
+Review `-WhatIf` output before applying tunnel credential migration. Never
+weaken bridge authentication to compensate for tunnel discovery failures.
 
-## Stop and restart
-
-```powershell
-.\ops\Stop-DevSpaceChatGPT.ps1
-```
-
-Stop validates the recorded PID, executable, start time, command line, and
-listener ownership. It does not enumerate and kill generic Node processes.
+## Stop, restart, and diagnostics
 
 ```powershell
-.\ops\Restart-DevSpaceChatGPT.ps1 `
+.\ops\Stop-RepoRelay.ps1
+.\ops\Restart-RepoRelay.ps1 `
   -WorkspaceRoot "C:\path\to\another-approved-repository" `
-  -BridgeSecretFile "C:\path\outside-repositories\bridge-secret.txt"
+  -BridgeSecretFile "C:\path\outside\reporelay-bridge-secret.txt"
+.\ops\Get-RepoRelayDiagnostics.ps1
 ```
 
-Restart validates the replacement before stopping the current bridge and
-attempts to restore the prior healthy workspace if replacement fails.
+Stop and restart validate recorded process identity, executable, start time,
+command line, and listener ownership. They do not enumerate or kill generic
+Node processes. Diagnostics print selected sanitized status only.
 
-## Diagnostics
-
-```powershell
-.\ops\Get-DevSpaceChatGPTDiagnostics.ps1
-.\ops\Test-DevSpaceChatGPT.ps1
-```
-
-Diagnostics print selected status fields and sanitized events only. They do
-not print raw headers, request bodies, bridge secrets, control-plane keys, or
-full tunnel profiles.
-
-If the connector lists cached tools but cannot open a workspace, verify:
-
-1. the local bridge process and loopback listener;
-2. unauthenticated rejection and authenticated tool enumeration;
-3. tunnel probe status;
-4. control-plane authentication and polling;
-5. whether a new local MCP event reached the machine.
-
-Do not weaken bridge authentication to compensate for a tunnel failure.
-
-## Runtime records
-
-Non-secret PID, process identity, workspace, log path, and health metadata are
-stored under `%LOCALAPPDATA%\DevSpaceChatGPT` by default. Every start uses a
-distinct run directory. Credential values are not stored in runtime metadata.
-
-## Optional logon task
+## Scheduled task
 
 Autostart is never installed implicitly. Preview the exact task first:
 
 ```powershell
-.\ops\Install-DevSpaceChatGPTAutostart.ps1 `
+.\ops\Install-RepoRelayAutostart.ps1 `
   -WorkspaceRoot "C:\path\to\approved-repository" `
-  -ControlPlaneApiKeyFile "C:\path\outside-repositories\control-plane-key.txt" `
+  -ControlPlaneApiKeyFile "C:\path\outside\control-plane-key.txt" `
   -WhatIf
 ```
 
-The task runs per-user with limited privileges and stores only path references,
-not credential values, in its configuration.
+The default task name is `RepoRelay MCP`. It runs per-user with limited
+privileges and stores paths, not credential values. Use
+`Manage-RepoRelayAutostart.ps1` to inspect or manage it.
 
-## Operations regression tests
+## Operations regression test
 
 ```powershell
-.\ops\Test-DevSpaceChatGPTOperations.ps1
+.\ops\Test-RepoRelayOperations.ps1
 ```
 
-Fixtures are preserved by default. If your environment provides a recoverable
-Recycle Bin helper, pass it through `-RecycleScript` or set
-`CHATGPT_CODEX_MCP_RECYCLE_SCRIPT`.
+Fixtures are preserved by default. If a recoverable Recycle Bin helper is
+available, pass it through `-RecycleScript` or `REPORELAY_RECYCLE_SCRIPT`.

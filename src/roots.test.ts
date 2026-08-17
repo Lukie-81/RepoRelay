@@ -1,33 +1,17 @@
 import assert from "node:assert/strict";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { assertAllowedPath, expandHomePath, resolveAllowedPath } from "./roots.js";
+import { assertAllowedPath, expandHomePath, isPathInsideRoot, resolveAllowedPath } from "./roots.js";
 
 const home = homedir();
-
 assert.equal(expandHomePath("~"), home);
-assert.equal(expandHomePath("~/personal/devspace"), resolve(home, "personal", "devspace"));
-assert.equal(expandHomePath("~user/project"), "~user/project");
-assert.equal(expandHomePath("$HOME/project"), "$HOME/project");
+assert.equal(expandHomePath("~/repo"), resolve(home, "repo"));
+assert.equal(expandHomePath("~other/repo"), "~other/repo");
+assert.equal(expandHomePath("$HOME/repo"), "$HOME/repo");
+assert.equal(isPathInsideRoot(join(home, "repo", "file.txt"), join(home, "repo")), true);
+assert.equal(isPathInsideRoot(join(home, "repository"), join(home, "repo")), false);
+assert.equal(assertAllowedPath("~/repo/file.txt", [join(home, "repo")]), resolve(home, "repo", "file.txt"));
+assert.equal(resolveAllowedPath("file.txt", "/workspace", ["/workspace"]), resolve("/workspace", "file.txt"));
+assert.throws(() => assertAllowedPath(join(home, "outside"), [join(home, "repo")]), /outside allowed roots/);
 
-assert.equal(
-  assertAllowedPath("~/personal/devspace", [join(home, "personal")]),
-  resolve(home, "personal", "devspace"),
-);
-
-assert.equal(
-  assertAllowedPath("~/personal/devspace", ["~/personal"]),
-  resolve(home, "personal", "devspace"),
-);
-
-assert.equal(
-  resolveAllowedPath("~/file.txt", "/workspace", ["/workspace"]),
-  resolve("/workspace", "~/file.txt"),
-);
-
-if (process.platform === "win32") {
-  assert.throws(
-    () => assertAllowedPath("C:\\Users\\Administrator", ["G:\\Projects\\Dev\\Github\\devspace"]),
-    /Path is outside allowed roots/,
-  );
-}
+console.log("Root path fixtures passed");

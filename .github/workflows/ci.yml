@@ -19,7 +19,7 @@ jobs:
           - windows-latest
 
     env:
-      DEVSPACE_PUBLIC_BASE_URL: http://127.0.0.1:7676
+      REPORELAY_PUBLIC_BASE_URL: http://127.0.0.1:7676
 
     steps:
       - name: Checkout
@@ -43,7 +43,7 @@ jobs:
 
       - name: Verify release
         env:
-          DEVSPACE_ALLOWED_ROOTS: ${{ steps.canonical_workspace.outputs.path }}
+          REPORELAY_ALLOWED_ROOTS: ${{ steps.canonical_workspace.outputs.path }}
         run: npm run verify:release
 
       - name: Check whitespace
@@ -51,5 +51,5 @@ jobs:
 
       - name: Doctor
         env:
-          DEVSPACE_ALLOWED_ROOTS: ${{ steps.canonical_workspace.outputs.path }}
+          REPORELAY_ALLOWED_ROOTS: ${{ steps.canonical_workspace.outputs.path }}
         run: node dist/cli.js doctor

@@ -1,23 +1,29 @@
-# Security overview
+# RepoRelay security notes
 
-The authoritative public policy is [SECURITY.md](../SECURITY.md). The detailed
-implementation boundary is documented in
-[chatgpt-review-hardening.md](chatgpt-review-hardening.md).
+The security boundary is the source path in `src/server.ts`,
+`src/config.ts`, `src/workspaces.ts`, and `src/review-files.ts`. The server
+registers only the four read/search tools and, when explicitly enabled, the
+three fixed handoff writers.
 
-The hardened profile is designed around five rules:
+Containment is defense in depth: lexical containment is followed by canonical
+root checks, per-segment link checks, sensitive-path checks, hard-link checks,
+and an open-handle identity check. Writers resolve only fixed pre-existing
+targets and normalize `STATE.json` as an object.
 
-1. one canonical repository root is fixed at startup;
-2. every request is authenticated before MCP handling;
-3. repository reads reject escapes, links, multi-linked files, special files,
-   and sensitive metadata;
-4. mutations are limited to three fixed Markdown handoff files; and
-5. shell, arbitrary process/Git execution, and generic filesystem mutation are
-   absent from the registered tool surface.
+Authentication runs before MCP body parsing. The bridge rejects missing,
+incorrect, and duplicate `X-RepoRelay-Bridge-Secret` headers. The listener is
+loopback-only and wildcard host configuration is rejected. OAuth routes are not
+registered.
 
-The bridge does not make an arbitrary repository safe to disclose. ChatGPT can
-read ordinary files inside the approved root, so users must review that tree
-and its Git history before selecting it. A tunnel also introduces an external
-provider and network path that must be secured independently.
+The test evidence is intentionally split by concern:
 
-Legacy privileged modes retained in the source are not part of this security
-boundary and must not be exposed to untrusted clients.
+- `src/config.test.ts` covers safe startup configuration;
+- `src/review-files.test.ts` covers traversal, sensitive paths, links,
+  hard-links, bounded search, and fixed writes;
+- `src/mcp-tools.test.ts` covers exact four/seven-tool registration and writer
+  schemas;
+- `src/bridge-auth.test.ts` covers HTTP authentication order and OAuth absence.
+
+RepoRelay does not claim to sandbox another same-user process or to discover
+every secret in an arbitrary repository. Secure the approved root and any
+external tunnel as separate operator responsibilities.

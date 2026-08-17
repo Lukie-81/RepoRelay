@@ -1,6 +1,6 @@
 # Contributing to RepoRelay
 
-Contributions should preserve the narrow ChatGPT review boundary and remain
+Contributions should preserve the narrow RepoRelay review boundary and remain
 usable from a fresh Windows checkout.
 
 ## Development setup
@@ -20,17 +20,16 @@ npm run verify:release
 node dist/cli.js doctor
 ```
 
-The release verification command runs type checking, the complete test suite,
-the bridge runtime test, and a production build.
+The release verification command runs type checking, the focused security test
+suite, and a production build.
 
-Tests that create containment fixtures preserve them by default. Set
-`DEVSPACE_TEST_ROOT` to choose a fixture root. The operations regression script
-accepts `-RecycleScript` (or `CHATGPT_CODEX_MCP_RECYCLE_SCRIPT`) when your local
-policy provides a recoverable Recycle Bin helper.
+Tests that create containment fixtures preserve them by default. The operations
+regression script accepts `-RecycleScript` (or `REPORELAY_RECYCLE_SCRIPT`) when
+your local policy provides a recoverable Recycle Bin helper.
 
 ## Change requirements
 
-- Keep the default tool mode `chatgpt-review`.
+- Keep the four-tool read-only surface as the default.
 - Do not broaden the bridge beyond one canonical approved root.
 - Do not add destination paths to the three handoff writer schemas.
 - Do not add shell, process, Git, arbitrary mutation, artifact, worktree,

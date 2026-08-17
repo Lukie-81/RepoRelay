@@ -5,336 +5,161 @@
   </picture>
 </p>
 
-<p align="center"><b>Give AI access to your repository — not your machine.</b></p>
+<p align="center"><b>Give an AI reviewer your repository — not your machine.</b></p>
 
-<p align="center">
-  <a href="https://github.com/Lukie-81/RepoRelay/actions/workflows/ci.yml"><img src="https://github.com/Lukie-81/RepoRelay/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
-  <a href="https://github.com/Lukie-81/RepoRelay/blob/main/package.json"><img src="https://img.shields.io/badge/node-%3E%3D22.19%20%3C27-339933" alt="Node &gt;=22.19 &lt;27"></a>
-</p>
+RepoRelay is a local-first MCP bridge for reviewing one explicitly approved
+repository. It binds to loopback, requires a bridge secret, and exposes only
+bounded repository read/search tools, with optional fixed `.ai-handoff` writers
+for coordination with a separate coding agent.
 
-RepoRelay is a security-focused MCP bridge that lets an AI client such as
-ChatGPT inspect one explicitly approved local repository — without exposing a
-shell, Git access, process execution, unrestricted filesystem access, or
-arbitrary writes. When you want changes made, the AI prepares a bounded task in
-a fixed handoff file, a separate local coding agent implements it with its own
-permissions, and the AI reviews the result.
-
-![RepoRelay architecture: an authenticated MCP client such as ChatGPT Web reaches the loopback chatgpt-review bridge (optionally through an HTTPS tunnel); the bridge exposes read and search tools over the one approved repository, while optional fixed writes target .ai-handoff files that coordinate a separate local coding agent whose result the AI reviews.](docs/assets/reporelay-hero.png)
+![RepoRelay architecture: an authenticated AI reviewer reaches the loopback bridge, which exposes bounded read and search access to one approved repository and optional fixed handoff writers for a separate implementer.](docs/assets/reporelay-hero.png)
 
 ## Quick start
 
-Windows 10/11 with PowerShell is the validated platform for the lifecycle
-scripts; the `quickstart` command and the test suite also run on Linux and
-macOS in CI. If your execution policy blocks `npm.ps1`, use `npm.cmd`.
-
-### 1. Install
+Requirements: Node.js `>=22.19 <27` and npm. Windows PowerShell is the
+validated lifecycle environment.
 
 ```powershell
-git clone https://github.com/Lukie-81/RepoRelay.git
-Set-Location RepoRelay
 npm ci
 npm run build
+reporelay quickstart "C:\path\to\approved-repository"
 ```
 
-`node dist/cli.js doctor` reports the active Node, Git, and bridge
-configuration without printing secret values.
+Quickstart validates the canonical repository root, creates the four
+pre-existing handoff files, generates a protected bridge secret at
+`%LOCALAPPDATA%\RepoRelay\reporelay-bridge-secret.txt`, starts the authenticated
+loopback bridge, and self-tests the four/seven-tool surface. Use
+`--no-handoff-writes` for read-only mode. Stop with Ctrl+C.
 
-### 2. Approve one repository and start the bridge
+For a source checkout, use `node dist/cli.js` in place of `reporelay`.
+`reporelay doctor` reports configuration and security status without printing
+secret values.
 
-```powershell
-node dist/cli.js quickstart "C:\path\to\approved-repository"
-```
+The MCP client must send `X-RepoRelay-Bridge-Secret` with the value loaded from
+the protected secret file. Never put that value in source, command history,
+logs, handoff files, or tickets.
 
-That one command validates the repository root, creates the four fixed
-`.ai-handoff` files, generates a bridge secret into a protected file outside
-every repository, starts the loopback bridge, and self-tests it before
-reporting ready: health, unauthenticated and wrong-secret rejection, and the
-constrained review tool surface. It prints the local MCP URL, the secret-file
-location, and the registered tools, and keeps running until Ctrl+C.
+## Public MCP surface
 
-Choose the approved repository carefully — never a drive root, your user
-profile, or anything containing credentials the AI should not read. If the
-repository already has an `AGENTS.md`, quickstart stops and asks you to re-run
-with `--append-agent-instructions`; it backs the file up outside the
-repository before appending its marked handoff section. Other flags:
-`--port <port>`, `--secret-file <path>`, and `--no-handoff-writes` for a
-read-only four-tool bridge.
+Read-only mode exposes exactly four tools:
 
-Connect a local MCP client to the printed URL and send the
-`X-DevSpace-Bridge-Secret` header loaded from the secret file. Never paste the
-secret into command history, logs, or issues.
+| Tool | Purpose |
+| --- | --- |
+| `open_workspace` | Open an existing repository inside the one approved root. |
+| `list_files` | List a contained real directory. Links are blocked. |
+| `read_file` | Read one bounded, non-sensitive regular file. |
+| `search_files` | Search bounded repository text with a literal query. |
 
-### 3. Connect a remote MCP client (optional)
+With `REPORELAY_HANDOFF_WRITES=1`, exactly three pathless writers are added:
 
-For a remote client such as ChatGPT Web, put an authenticated HTTPS MCP tunnel
-in front of the loopback bridge and configure it to inject the
-`X-DevSpace-Bridge-Secret` header on every request. The tunnel client is
-external to this repository; see the
-[OpenAI secure MCP tunnels guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
-and [OPERATIONS.md](OPERATIONS.md) for the full tunnel lifecycle. Do not
-substitute a public unauthenticated proxy.
+| Tool | Fixed target |
+| --- | --- |
+| `write_next_task` | `.ai-handoff/NEXT_TASK.md` |
+| `write_review` | `.ai-handoff/REVIEW.md` |
+| `update_handoff_state` | `.ai-handoff/STATE.json` |
 
-For the configuration checklist, every setting, and operational edge cases,
-see [docs/setup.md](docs/setup.md), [docs/configuration.md](docs/configuration.md),
-and [OPERATIONS.md](OPERATIONS.md).
+Writer schemas accept only `workspaceId` and `content`. Targets must already
+exist as regular files. `.ai-handoff/RESULT.md` is written by the separate
+implementer and is not writable through RepoRelay.
 
-### Manual lifecycle (alternative)
+RepoRelay contains no active public path for shell or process execution, Git
+operations, arbitrary writes or patches, deletes, artifacts, worktrees,
+local-agent execution, agent SDK orchestration, bundled skills/subagents, OAuth
+routes, database-backed workspace persistence, or a React UI workspace.
 
-The PowerShell lifecycle scripts remain the validated path for long-running
-and tunnel-backed Windows setups:
-
-```powershell
-.\ops\Initialize-DevSpaceChatGPTHandoff.ps1 `
-  -RepositoryRoot "C:\path\to\approved-repository" -Apply
-
-.\ops\Start-DevSpaceChatGPT.ps1 `
-  -WorkspaceRoot "C:\path\to\approved-repository" `
-  -BridgeSecretFile "C:\path\outside-repositories\bridge-secret.txt" `
-  -SkipTunnel
-
-.\ops\Test-DevSpaceChatGPT.ps1 -WorkspaceRoot "C:\path\to\approved-repository"
-```
-
-For this path, generate the bridge secret yourself: at least 32 random
-characters in a protected file outside every repository. The initialization
-script refuses to replace an existing `AGENTS.md` unless you pass
-`-AppendAgentInstructions`.
-
-Contributors should also run `npm run verify:release` (type checking, the
-full test suite, the authenticated bridge runtime test, and a production
-build) before proposing changes; see [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Why RepoRelay?
-
-Most ways to connect an AI to local code give the agent a shell, a Git binary,
-and the whole filesystem. RepoRelay takes the opposite approach: the AI client
-gets a deliberately narrow tool surface over one repository you explicitly
-approve.
-
-| The AI client can                                          | The AI client cannot                       |
-| ---------------------------------------------------------- | ------------------------------------------ |
-| Read files inside the approved repository                  | Run shell commands                         |
-| Search and list repository content                         | Execute Git or other processes             |
-| Read project instructions such as `AGENTS.md`              | Browse files anywhere else on the machine  |
-| Update three fixed `.ai-handoff` files — only if you enable it | Create, edit, delete, or patch arbitrary files |
-
-Handoff writes are **optional and off by default**. When enabled
-(`DEVSPACE_HANDOFF_WRITES=1`), the three writers accept only content — never a
-destination path — and target three pre-existing files under `.ai-handoff/`.
-
-Three parties hold different authority:
-
-- The **AI client** is limited to the narrow tool surface above. RepoRelay
-  assumes it may be malicious.
-- The **coding agent** is a separate local program with whatever permissions
-  you grant it directly. RepoRelay neither constrains nor empowers it — a
-  handoff file coordinates work, it does not grant permissions.
-- **You** remain the authority for destructive actions, credentials,
-  deployment, publishing, and expanding what is exposed.
-
-## How it works
-
-<details>
-<summary>Text version of the diagram</summary>
+## Handoff cycle
 
 ```text
-AI / MCP client (e.g. ChatGPT Web)
-      |
-      |  authenticated MCP: loopback + optional HTTPS tunnel
-      v
- RepoRelay (chatgpt-review bridge)
-      |
-      |-- read/search ------------------->  the one approved repository
-      |
-      |-- optional fixed writes ---------->  .ai-handoff/
-      |                                       NEXT_TASK / REVIEW / STATE
-      |                                             |
-      |                                             v
-      |                                     coding agent (separate local actor)
-      |                                             |
-      |                                             |  implements + verifies,
-      |                                             |  writes LUNA_RESULT.md
-      |                                             v
-      |                                     AI reviews the result
+AI reviewer
+    ↓
+NEXT_TASK.md + STATE.json
+    ↓
+Codex or Claude implementer
+    ↓
+RESULT.md + STATE.json
+    ↓
+AI reviewer reads the implementation
+    ↓
+REVIEW.md + STATE.json
 ```
 
-</details>
+The reviewer may inspect the repository and, when enabled, update only the
+three fixed coordination files. The implementer is a separate local actor with
+its own authorization; a handoff file never grants it permissions.
 
-- RepoRelay sits between the AI client and the approved repository and exposes
-  a deliberately narrow tool surface: four read tools, plus three optional
-  fixed writers.
-- The coding agent works locally with its own authorization and records its
-  result. RepoRelay never executes it — or any shell, Git, or process.
-- `.ai-handoff` files coordinate the loop; they never grant either side new
-  permissions.
+See the provider-neutral examples in [`examples/`](examples/) and the
+[sample handoff cycle](examples/sample-handoff-cycle/README.md).
 
-## The constrained tool surface
+## Configuration
 
-The public profile is `chatgpt-review`. It registers four read-only tools:
+The bridge is intentionally small. The important environment variables are:
 
-| Tool            | Purpose                                                        |
-| --------------- | -------------------------------------------------------------- |
-| `open_workspace` | Open the one approved repository for this server process.     |
-| `list_files`    | List a contained directory; links and junctions are not followed. |
-| `read_file`     | Read a contained regular text file, up to 1 MiB.               |
-| `search_files`  | Search contained text files with bounded results.              |
+```text
+REPORELAY_HOST=127.0.0.1
+REPORELAY_PORT=7676
+REPORELAY_ALLOWED_ROOTS=<one absolute repository path>
+REPORELAY_BRIDGE_AUTH=1
+REPORELAY_BRIDGE_SECRET=<32+ characters from protected storage>
+REPORELAY_HANDOFF_WRITES=0
+REPORELAY_PUBLIC_BASE_URL=http://127.0.0.1:7676
+REPORELAY_ALLOWED_HOSTS=127.0.0.1
+REPORELAY_LOG_LEVEL=info
+REPORELAY_LOG_FORMAT=json
+REPORELAY_LOG_REQUESTS=1
+REPORELAY_LOG_TOOL_CALLS=1
+```
 
-Setting `DEVSPACE_HANDOFF_WRITES=1` adds exactly three fixed-target writers —
-seven tools in total:
+See [`.env.example`](.env.example) and [docs/configuration.md](docs/configuration.md).
+Remote review requires an independently secured HTTPS tunnel that forwards to
+the loopback listener and injects the same header. The tunnel is not bundled
+with RepoRelay.
 
-| Tool                  | Fixed destination             |
-| --------------------- | ----------------------------- |
-| `write_next_task`     | `.ai-handoff/NEXT_TASK.md`    |
-| `write_review`        | `.ai-handoff/REVIEW.md`       |
-| `update_handoff_state` | `.ai-handoff/STATE.json`     |
+## Windows lifecycle scripts
 
-The writer schemas accept only `workspaceId` and `content`. There is no path
-parameter; the destination is fixed in server code, and all three targets must
-already exist as regular files. `.ai-handoff/LUNA_RESULT.md` is reserved for
-the coding agent and has no AI writer.
+The scripts use the source checkout as their authority and keep runtime records
+under `%LOCALAPPDATA%\RepoRelay` by default:
 
-The review profile registers no shell, process, Git, generic write/edit/delete,
-patch, worktree, artifact, skill, subagent, or widget tools. Older privileged
-modes (`minimal`, `full`, `codex`) remain in the source for compatibility; they
-are local engineering surfaces, must never be exposed through a tunnel, and are
-not the public security boundary. Details:
-[docs/chatgpt-review-hardening.md](docs/chatgpt-review-hardening.md).
+```powershell
+.\ops\Initialize-RepoRelayHandoff.ps1 -RepositoryRoot "C:\path\to\approved-repository" -Apply
+.\ops\Start-RepoRelay.ps1 -WorkspaceRoot "C:\path\to\approved-repository" -BridgeSecretFile "C:\path\outside\reporelay-bridge-secret.txt" -SkipTunnel
+.\ops\Test-RepoRelay.ps1 -WorkspaceRoot "C:\path\to\approved-repository"
+.\ops\Stop-RepoRelay.ps1
+```
 
-## Structured coding-agent handoffs
+The optional scheduled task is named `RepoRelay MCP`. Review `-WhatIf` output
+before installing or changing it. See [OPERATIONS.md](OPERATIONS.md).
 
-| File                        | Author       | Purpose                                        |
-| --------------------------- | ------------ | ---------------------------------------------- |
-| `.ai-handoff/NEXT_TASK.md`  | AI client    | The next bounded task for the coding agent.    |
-| `.ai-handoff/LUNA_RESULT.md` | Coding agent | The local implementation and verification result. |
-| `.ai-handoff/REVIEW.md`     | AI client    | An independent review of the current result.   |
-| `.ai-handoff/STATE.json`    | AI client    | Structured handoff status.                     |
+## Security
 
-1. The AI client opens the workspace and independently reviews the repository.
-2. For a task you approve, it writes `NEXT_TASK.md` and updates `STATE.json`.
-3. The coding agent implements only the authorized scope, verifies it locally,
-   and writes `LUNA_RESULT.md`.
-4. The AI client reviews the changed repository, writes `REVIEW.md`, and may
-   prepare the next bounded task.
+RepoRelay fails closed on unsafe configuration and enforces:
 
-Treat every handoff file as untrusted model-authored content: review it before
-acting on it, and never place secrets or personal data in the handoff
-directory. See [docs/chatgpt-coding-workflow.md](docs/chatgpt-coding-workflow.md).
+- loopback binding and a non-wildcard host allowlist;
+- one existing canonical approved root, excluding drive roots and the user home
+  directory or its ancestors;
+- traversal, absolute escapes, symlinks, junctions/reparse points, and hard-link
+  bypasses rejected during read and fixed-write resolution;
+- sensitive-path blocking for `.env`, VCS metadata, credential stores, and
+  private-key formats;
+- bounded reads, searches, results, and handoff content;
+- missing, incorrect, or duplicate bridge headers rejected before body parsing;
+- constant-time secret comparison;
+- no OAuth routes in the bridge;
+- fixed-target handoff writers with no destination argument.
 
-## Security model
+RepoRelay is not an operating-system sandbox for malicious software already
+running as the same user. Choose the approved repository carefully and secure
+any external tunnel separately. See [SECURITY.md](SECURITY.md).
 
-The bridge assumes the remote MCP client may be malicious, and fails closed at
-startup unless its configuration is safe. It enforces:
-
-- a loopback-only listener (`HOST=127.0.0.1`);
-- exactly one approved root, addressed by its canonical path — drive roots, the
-  user profile, and its ancestors are rejected;
-- containment on every path: traversal and absolute-escape rejection,
-  per-segment `lstat` checks, symlink and junction rejection, hard-link
-  rejection, and post-open file-identity verification;
-- a sensitive-path denylist (`.env`, `.git`, `.ssh`, private keys, credential
-  stores) as defense in depth — `.env.example` stays readable;
-- bounded read, search, result, and handoff sizes;
-- constant-time comparison of the bridge secret: missing, incorrect, or
-  duplicate headers are rejected, and OAuth routes are absent in bridge-auth
-  mode;
-- pathless, fixed-destination writer schemas, only when explicitly enabled.
-
-Honest limits: RepoRelay is **not** a sandbox against malicious software
-already running locally as the same user; same-user filesystem races are
-narrowed but not eliminated; a tunnel is an external control plane that must be
-secured and verified separately; and the denylist is not a comprehensive secret
-scanner. RepoRelay also does not make an arbitrary repository safe to disclose —
-choose the approved root carefully.
-
-Full details: [SECURITY.md](SECURITY.md) and
-[docs/chatgpt-review-hardening.md](docs/chatgpt-review-hardening.md).
-
-## Requirements
-
-- Windows 10 or 11 — the validated platform for the hardened lifecycle and
-  tunnel scripts (tests also run on Linux and macOS in CI);
-- Windows PowerShell 5.1 or newer (PowerShell 7 recommended for development);
-- Node.js `>=22.19 <27` and npm;
-- Git;
-- for remote clients, an HTTPS MCP tunnel that can inject a protected request
-  header (not bundled).
-
-## Documentation
-
-| Document                                                       | Purpose                                            |
-| -------------------------------------------------------------- | -------------------------------------------------- |
-| [docs/setup.md](docs/setup.md)                                 | Installation and configuration checklist           |
-| [docs/configuration.md](docs/configuration.md)                 | Configuration reference for the hardened bridge    |
-| [OPERATIONS.md](OPERATIONS.md)                                 | Start, stop, diagnostics, tunnel lifecycle         |
-| [SECURITY.md](SECURITY.md)                                     | Security policy and vulnerability reporting        |
-| [docs/chatgpt-review-hardening.md](docs/chatgpt-review-hardening.md) | The detailed AI-review containment model       |
-| [docs/chatgpt-coding-workflow.md](docs/chatgpt-coding-workflow.md) | The review → handoff → implement → review cycle |
-| [docs/compatibility.md](docs/compatibility.md)                 | Retained legacy identifiers                        |
-| [docs/gotchas.md](docs/gotchas.md)                             | Troubleshooting                                    |
-| [CONTRIBUTING.md](CONTRIBUTING.md)                             | Development and verification requirements          |
-
-## Limitations
-
-- Windows is the validated operational platform; the lifecycle scripts are
-  PowerShell.
-- The review tools read UTF-8 text files up to 1 MiB; binary files are not
-  readable.
-- Search is bounded to 10,000 files and 200 matches.
-- Credential-path blocking is defense in depth, not a universal secret
-  detector.
-- The three handoff writers replace entire file contents; they do not merge.
-- Authorized same-user local processes can still race or modify files.
-- Tunnel availability and control-plane authorization are external concerns.
-
-## Compatibility
-
-The public brand is RepoRelay, but older identifiers are deliberately retained
-so existing local setups keep working: `DEVSPACE_*` environment variables, the
-`chatgpt-review` profile name, the `X-DevSpace-Bridge-Secret` header, the
-`devspace` and `chatgpt-codex-mcp` command aliases, and the
-`ops/DevSpaceChatGPT*.ps1` script names. They are compatibility identifiers,
-not separate products or additional security profiles. See
-[docs/compatibility.md](docs/compatibility.md).
-
-## Upstream and project history
-
-RepoRelay is a substantially modified, security-focused derivative of
-`Waishnav/devspace`. The lineage traces to approximately DevSpace v1.0.5,
-carried through a previous engineering repository; the public repository starts
-from fresh Git history. DevSpace is the upstream project — current upstream
-development is independent and may differ substantially from that baseline.
-RepoRelay is an independent open-source project, and ChatGPT, Codex, and MCP
-are used only as descriptive names for supported clients and protocols.
-
-Added on top of that baseline, RepoRelay's own direction includes:
-
-- the constrained `chatgpt-review` profile with a four-read / optional
-  seven-tool AI-facing surface;
-- fixed, pathless `.ai-handoff` writers;
-- sensitive-file blocking and canonical-path containment, including defenses
-  against links, junctions, and hard links;
-- bridge authentication and tunnel/runtime hardening;
-- the structured AI-client → coding-agent → review workflow;
-- Windows lifecycle tooling, diagnostics, and release verification.
-
-RepoRelay is maintained independently and is not affiliated with the unrelated
-Kubernetes product named DevSpace. The [MIT License](LICENSE) preserves the
-required upstream notices.
-
-## Contributing
-
-Contributions must preserve the narrow review boundary. From a clean checkout:
+## Development
 
 ```powershell
 npm ci
+npm run typecheck
+npm test
 npm run verify:release
+npm audit --audit-level=low
+npm pack --dry-run --json
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for change requirements and the full
-verification matrix.
-
-## License
-
-[MIT](LICENSE). The license file preserves the upstream DevSpace copyright
-notice alongside the RepoRelay copyright notice.
+The project is MIT-licensed. It retains appropriate upstream attribution and
+does not bundle the SDKs or runtimes of Codex, Claude, or other implementers.

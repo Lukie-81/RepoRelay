@@ -1,41 +1,44 @@
 # RepoRelay setup
 
-The supported public setup is the hardened `chatgpt-review` bridge described in
-the [project README](../README.md). Start there for the complete walkthrough.
+## Install from a checkout
 
-## Quick checklist
+```powershell
+npm ci
+npm run build
+```
 
-1. Install Node.js 22.19-26, npm, Git for Windows, and PowerShell 5.1 or newer
-   (PowerShell 7 is recommended).
-2. Run `npm ci` and `npm run build` from the repository checkout.
-3. Run `node dist/cli.js quickstart "C:\path\to\approved-repository"`. It
-   validates the root, creates the `.ai-handoff` files, generates the bridge
-   secret into a protected file outside every repository, starts the loopback
-   bridge, and self-tests it.
-4. Use `.env.example` as a reference for manual and long-running setups; pass
-   real values through protected process environment or the
-   lifecycle-script parameters.
-5. Set `DEVSPACE_ALLOWED_ROOTS` to exactly one absolute repository path.
-6. Keep `DEVSPACE_TOOL_MODE=chatgpt-review` and bridge authentication enabled.
-7. For long-running or tunnel-backed Windows setups, use the validated
-   lifecycle scripts: `ops/Initialize-DevSpaceChatGPTHandoff.ps1
-   -RepositoryRoot "C:\path\to\approved-repository" -Apply`, then
-   `ops/Start-DevSpaceChatGPT.ps1 -WorkspaceRoot
-   "C:\path\to\approved-repository" -BridgeSecretFile
-   "C:\path\outside-repositories\bridge-secret.txt" -SkipTunnel` (or follow
-   the authenticated tunnel procedure in the README), then check with
-   `ops/Test-DevSpaceChatGPT.ps1`.
+After a global or local npm install, the public command is `reporelay`. In a
+checkout, `node dist/cli.js` is equivalent.
 
-The bridge refuses to start if the root or authentication configuration is
-unsafe. Do not work around those checks.
+## Quickstart
 
-If Windows PowerShell blocks the `npm.ps1` shim, use `npm.cmd` for the npm
-commands. `node dist/cli.js doctor` reports the active Node, Git, SQLite,
-tool-mode, authentication, handoff, root, and host configuration without
-printing secret values.
+```powershell
+reporelay quickstart "C:\path\to\approved-repository"
+```
 
-## Privileged compatibility modes
+The command requires a real repository directory narrower than the operator's
+home directory. It creates missing `.ai-handoff` targets without replacing
+existing ones, generates a 32-byte bridge secret, starts the loopback server,
+and checks missing/wrong authentication plus the exact tool surface.
 
-The source retains older generic modes for upstream compatibility. They can
-include mutation and command-execution tools and are not part of the hardened
-public workflow. Do not expose them to ChatGPT or an untrusted MCP client.
+Use `--no-handoff-writes` for the four-tool read-only surface. Use
+`--append-agent-instructions` only when an existing `AGENTS.md` has been
+reviewed; quickstart backs it up outside the repository before appending.
+
+## Connect a reviewer
+
+Use the printed local MCP URL and load the header value from the protected file:
+
+```text
+X-RepoRelay-Bridge-Secret: <value loaded from protected storage>
+```
+
+For remote review, use an external authenticated HTTPS MCP tunnel that forwards
+to the loopback server and injects this header. Do not expose the local port or
+replace the header with a public proxy.
+
+## Manual Windows lifecycle
+
+See [OPERATIONS.md](../OPERATIONS.md) for the recoverable handoff initializer,
+start/stop/restart, diagnostics, tunnel protection, and optional `RepoRelay MCP`
+scheduled task.
