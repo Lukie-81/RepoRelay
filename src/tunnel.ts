@@ -22,6 +22,29 @@ const BRIDGE_SECRET_MIN_LENGTH = 32;
 const GENERATED_PROFILE_MARKER = "# RepoRelay-managed tunnel-client profile.";
 const TUNNEL_CLIENT_DOWNLOAD_URL = "https://github.com/openai/tunnel-client/releases/latest";
 
+export const TUNNEL_ID_PROMPT_HINT: readonly string[] = [
+  "What: the ID of the OpenAI Secure MCP Tunnel that carries ChatGPT traffic to RepoRelay.",
+  "Where: create or select the tunnel in OpenAI Platform (Secure MCP Tunnels) and copy its ID.",
+  "Format: tunnel_ followed by 32 lowercase hex characters.",
+  "Do not use: the tunnel URL, a workspace ID, or any secret.",
+];
+
+export const RUNTIME_API_KEY_PROMPT_HINT: readonly string[] = [
+  "What: the OpenAI runtime API key that tunnel-client uses to authenticate to OpenAI (RepoRelay does not use it).",
+  "Where: create it in OpenAI Platform runtime-key settings.",
+  "Do not use: a project or admin API key, or the RepoRelay bridge secret.",
+  "It is stored in a protected file and never echoed.",
+];
+
+export const CHATGPT_COMPLETION_CHECKLIST: readonly string[] = [
+  "ChatGPT Web completion checklist:",
+  "  1. Create or select the custom MCP app in ChatGPT.",
+  "  2. Choose the tunnel connection and select this tunnel.",
+  "  3. Run Scan Tools and verify the tools: exactly 7 with handoffs, or exactly 4 in read-only mode.",
+  "  4. Start a new chat and select the RepoRelay app.",
+  "Do not enter 127.0.0.1 or localhost, and never paste the runtime API key or bridge secret into ChatGPT.",
+];
+
 export interface TunnelPaths {
   root: string;
   configFile: string;
@@ -47,6 +70,9 @@ export interface TunnelSetupOptions {
   runtimeApiKey?: string;
   interactive?: boolean;
   output?: (line: string) => void;
+  /** Test-only injection for the interactive prompts. */
+  readVisibleInput?: (prompt: string) => Promise<string>;
+  readHiddenInput?: (prompt: string) => Promise<string>;
 }
 
 export interface TunnelSetupResult {
@@ -76,6 +102,8 @@ export interface TunnelDoctorOptions {
 export interface TunnelRunOptions {
   env?: NodeJS.ProcessEnv;
   output?: (line: string) => void;
+  /** Test-only injection; the CLI spawns the real tunnel-client. */
+  spawnClient?: (executable: string, args: string[]) => Promise<number>;
 }
 
 export function getTunnelPaths(env: NodeJS.ProcessEnv = process.env): TunnelPaths {
@@ -130,23 +158,24 @@ export async function setupTunnel(options: TunnelSetupOptions = {}): Promise<Tun
     interactive,
   });
 
+  const promptVisible = options.readVisibleInput ?? readVisibleInput;
+  const promptHidden = options.readHiddenInput ?? readHiddenInput;
+
   output("RepoRelay — ChatGPT Web setup");
   let tunnelId = options.tunnelId?.trim() || existingConfig?.tunnelId;
   if (!tunnelId) {
     requireInteractive(interactive, "Tunnel setup needs a tunnel ID.");
+    for (const line of TUNNEL_ID_PROMPT_HINT) output(line);
     output("Tunnel ID:");
-    tunnelId = (await readVisibleInput("> ")).trim();
+    tunnelId = (await promptVisible("> ")).trim();
   }
   assertTunnelId(tunnelId);
 
-  const runtimeKeyAlreadyExists = await pathExists(paths.runtimeApiKeyFile);
-  if (!runtimeKeyAlreadyExists && options.runtimeApiKey === undefined) {
-    requireInteractive(interactive, "Tunnel setup needs the OpenAI runtime API key once.");
-    output("Runtime API key:");
-  }
   await ensureRuntimeApiKeyFile(paths, {
     runtimeApiKey: options.runtimeApiKey,
     interactive,
+    output,
+    promptHidden,
   });
 
   await validateSecretFile(paths.bridgeSecretFile, "RepoRelay bridge secret", BRIDGE_SECRET_MIN_LENGTH, true);
@@ -240,8 +269,10 @@ export async function runTunnel(options: TunnelRunOptions = {}): Promise<number>
   output("RepoRelay tunnel");
   output("✓ Profile loaded");
   output("✓ Forwarding RepoRelay MCP through the OpenAI Secure MCP Tunnel");
+  for (const line of CHATGPT_COMPLETION_CHECKLIST) output(line);
   output("Keep this window open. Press Ctrl+C to stop.");
-  return await spawnTunnelClient(tunnelClientPath, buildTunnelClientArgs("run", paths), output);
+  const spawnClient = options.spawnClient ?? ((executable: string, args: string[]) => spawnTunnelClient(executable, args, output));
+  return await spawnClient(tunnelClientPath, buildTunnelClientArgs("run", paths));
 }
 
 async function spawnTunnelClient(executable: string, args: string[], output: (line: string) => void): Promise<number> {
@@ -299,7 +330,15 @@ async function readSecretValues(paths: TunnelPaths): Promise<string[]> {
   ].filter((value) => value.length > 0);
 }
 
-async function ensureRuntimeApiKeyFile(paths: TunnelPaths, options: { runtimeApiKey?: string; interactive: boolean }): Promise<boolean> {
+async function ensureRuntimeApiKeyFile(
+  paths: TunnelPaths,
+  options: {
+    runtimeApiKey?: string;
+    interactive: boolean;
+    output: (line: string) => void;
+    promptHidden: (prompt: string) => Promise<string>;
+  },
+): Promise<boolean> {
   if (await pathExists(paths.runtimeApiKeyFile)) {
     await validateSecretFile(paths.runtimeApiKeyFile, "OpenAI runtime API key", 1, true);
     return false;
@@ -308,7 +347,9 @@ async function ensureRuntimeApiKeyFile(paths: TunnelPaths, options: { runtimeApi
   let runtimeApiKey = options.runtimeApiKey;
   if (runtimeApiKey === undefined) {
     requireInteractive(options.interactive, "Tunnel setup needs the OpenAI runtime API key once.");
-    runtimeApiKey = await readHiddenInput("> ");
+    for (const line of RUNTIME_API_KEY_PROMPT_HINT) options.output(line);
+    options.output("Runtime API key:");
+    runtimeApiKey = await options.promptHidden("> ");
   }
   runtimeApiKey = runtimeApiKey.trim();
   if (!runtimeApiKey) throw new Error("The OpenAI runtime API key cannot be empty.");

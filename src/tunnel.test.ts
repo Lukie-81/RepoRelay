@@ -8,6 +8,7 @@ import {
   buildTunnelProfile,
   doctorTunnel,
   getTunnelPaths,
+  runTunnel,
   setupTunnel,
 } from "./tunnel.js";
 
@@ -131,5 +132,70 @@ await assert.rejects(
   /inline secret and was not changed/,
 );
 assert.match(await readFile(paths.profileFile, "utf8"), /inline-placeholder/);
+
+// Tunnel-ID syntax is validated before anything is persisted.
+const invalidIdRoot = join(fixtureRoot, "invalid-tunnel-id");
+const invalidIdEnv = { ...process.env, REPORELAY_CONFIG_DIR: invalidIdRoot };
+const invalidIdPaths = getTunnelPaths(invalidIdEnv);
+await assert.rejects(
+  () => setupTunnel({
+    env: invalidIdEnv,
+    tunnelId: "not-a-valid-tunnel-id",
+    tunnelClientPath: process.execPath,
+    interactive: false,
+    output: () => undefined,
+  }),
+  /Tunnel ID must look like tunnel_/,
+);
+await assert.rejects(() => readFile(invalidIdPaths.configFile, "utf8"), /ENOENT/);
+await assert.rejects(() => readFile(invalidIdPaths.profileFile, "utf8"), /ENOENT/);
+
+// Interactive setup prints cold-start hints and persists prompted values.
+const interactiveRoot = join(fixtureRoot, "interactive-setup");
+const interactiveEnv = { ...process.env, REPORELAY_CONFIG_DIR: interactiveRoot };
+const interactivePaths = getTunnelPaths(interactiveEnv);
+await ensureQuickstartBridgeSecret(interactivePaths.bridgeSecretFile);
+const interactiveOutput: string[] = [];
+await setupTunnel({
+  env: interactiveEnv,
+  tunnelClientPath: process.execPath,
+  interactive: true,
+  output: (line) => interactiveOutput.push(line),
+  readVisibleInput: async () => tunnelId,
+  readHiddenInput: async () => "interactive-runtime-key",
+});
+assert.ok(interactiveOutput.some((line) => line.includes("the ID of the OpenAI Secure MCP Tunnel")));
+assert.ok(interactiveOutput.some((line) => line.includes("runtime API key that tunnel-client uses to authenticate")));
+assert.ok(interactiveOutput.some((line) => line.includes("Do not use")));
+assert.equal((await readFile(interactivePaths.runtimeApiKeyFile, "utf8")).trim(), "interactive-runtime-key");
+assert.equal(JSON.parse(await readFile(interactivePaths.configFile, "utf8")).tunnelId, tunnelId);
+
+// A successful run prints the ChatGPT Web completion checklist.
+const runRoot = join(fixtureRoot, "run-setup");
+const runEnv = { ...process.env, REPORELAY_CONFIG_DIR: runRoot };
+const runPaths = getTunnelPaths(runEnv);
+await ensureQuickstartBridgeSecret(runPaths.bridgeSecretFile);
+await setupTunnel({
+  env: runEnv,
+  tunnelId,
+  tunnelClientPath: process.execPath,
+  runtimeApiKey: "run-runtime-key",
+  interactive: false,
+  output: () => undefined,
+});
+const runOutput: string[] = [];
+const runExit = await runTunnel({
+  env: runEnv,
+  output: (line) => runOutput.push(line),
+  spawnClient: async () => 0,
+});
+assert.equal(runExit, 0);
+assert.ok(runOutput.includes("✓ Forwarding RepoRelay MCP through the OpenAI Secure MCP Tunnel"));
+assert.ok(runOutput.some((line) => line.includes("ChatGPT Web completion checklist")));
+assert.ok(runOutput.some((line) => line.includes("Scan Tools")));
+assert.ok(runOutput.some((line) => line.includes("exactly 7")));
+assert.ok(runOutput.some((line) => line.includes("exactly 4")));
+assert.ok(runOutput.some((line) => line.includes("127.0.0.1")));
+assert.ok(runOutput.some((line) => line.includes("never paste")));
 
 console.log(`Tunnel fixtures preserved at ${fixtureRoot}`);
