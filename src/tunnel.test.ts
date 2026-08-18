@@ -164,9 +164,12 @@ await setupTunnel({
   readVisibleInput: async () => tunnelId,
   readHiddenInput: async () => "interactive-runtime-key",
 });
-assert.ok(interactiveOutput.some((line) => line.includes("the ID of the OpenAI Secure MCP Tunnel")));
-assert.ok(interactiveOutput.some((line) => line.includes("runtime API key that tunnel-client uses to authenticate")));
-assert.ok(interactiveOutput.some((line) => line.includes("Do not use")));
+assert.ok(interactiveOutput.some((line) => line.includes("1. Tunnel ID")));
+assert.ok(interactiveOutput.some((line) => line.includes("platform.openai.com/settings/organization/tunnels")));
+assert.ok(interactiveOutput.some((line) => line.includes("2. Runtime API key")));
+assert.ok(interactiveOutput.some((line) => line.includes("platform.openai.com/settings/organization/api-keys")));
+assert.ok(interactiveOutput.some((line) => line.includes("Tunnels Read + Use")));
+assert.ok(interactiveOutput.some((line) => line.includes("Runtime API key (input hidden):")));
 assert.equal((await readFile(interactivePaths.runtimeApiKeyFile, "utf8")).trim(), "interactive-runtime-key");
 assert.equal(JSON.parse(await readFile(interactivePaths.configFile, "utf8")).tunnelId, tunnelId);
 

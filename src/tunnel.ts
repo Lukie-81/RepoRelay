@@ -23,17 +23,20 @@ const GENERATED_PROFILE_MARKER = "# RepoRelay-managed tunnel-client profile.";
 const TUNNEL_CLIENT_DOWNLOAD_URL = "https://github.com/openai/tunnel-client/releases/latest";
 
 export const TUNNEL_ID_PROMPT_HINT: readonly string[] = [
-  "What: the ID of the OpenAI Secure MCP Tunnel that carries ChatGPT traffic to RepoRelay.",
-  "Where: create or select the tunnel in OpenAI Platform (Secure MCP Tunnels) and copy its ID.",
-  "Format: tunnel_ followed by 32 lowercase hex characters.",
-  "Do not use: the tunnel URL, a workspace ID, or any secret.",
+  "1. Tunnel ID",
+  "   Get it from OpenAI Platform → Secure MCP Tunnels:",
+  "   https://platform.openai.com/settings/organization/tunnels",
+  "",
 ];
 
 export const RUNTIME_API_KEY_PROMPT_HINT: readonly string[] = [
-  "What: the OpenAI runtime API key that tunnel-client uses to authenticate to OpenAI (RepoRelay does not use it).",
-  "Where: create it in OpenAI Platform runtime-key settings.",
-  "Do not use: a project or admin API key, or the RepoRelay bridge secret.",
-  "It is stored in a protected file and never echoed.",
+  "2. Runtime API key",
+  "   Create one in OpenAI Platform → API keys:",
+  "   https://platform.openai.com/settings/organization/api-keys",
+  "",
+  "   Choose your project and create a new secret key.",
+  "   Your account needs Tunnels Read + Use permission.",
+  "",
 ];
 
 export const CHATGPT_COMPLETION_CHECKLIST: readonly string[] = [
@@ -165,6 +168,7 @@ export async function setupTunnel(options: TunnelSetupOptions = {}): Promise<Tun
   let tunnelId = options.tunnelId?.trim() || existingConfig?.tunnelId;
   if (!tunnelId) {
     requireInteractive(interactive, "Tunnel setup needs a tunnel ID.");
+    output("");
     for (const line of TUNNEL_ID_PROMPT_HINT) output(line);
     output("Tunnel ID:");
     tunnelId = (await promptVisible("> ")).trim();
@@ -348,7 +352,7 @@ async function ensureRuntimeApiKeyFile(
   if (runtimeApiKey === undefined) {
     requireInteractive(options.interactive, "Tunnel setup needs the OpenAI runtime API key once.");
     for (const line of RUNTIME_API_KEY_PROMPT_HINT) options.output(line);
-    options.output("Runtime API key:");
+    options.output("Runtime API key (input hidden):");
     runtimeApiKey = await options.promptHidden("> ");
   }
   runtimeApiKey = runtimeApiKey.trim();
