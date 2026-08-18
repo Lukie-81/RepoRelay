@@ -1,6 +1,6 @@
 {
   "name": "reporelay-mcp",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A local-first MCP bridge for tightly controlled repository review and structured coding-agent handoffs.",
   "type": "module",
   "main": "dist/server.js",
