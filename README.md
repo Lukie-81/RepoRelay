@@ -30,7 +30,7 @@ without giving it control of the rest of your computer.</p>
     <img
       src="docs/assets/reporelay-demo.gif"
       width="760"
-      alt="RepoRelay demo showing ChatGPT safely inspecting an approved local repository while restricted access is blocked"
+      alt="RepoRelay onboarding demo showing installation, one approved repository selection, ChatGPT connection, and adding RepoRelay to ChatGPT"
     >
   </a>
 </p>
