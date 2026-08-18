@@ -1,12 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { execFile } from "node:child_process";
 import { existsSync, lstatSync } from "node:fs";
-import { chmod, copyFile, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import type { Server } from "node:http";
 import { createConnection } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { promisify } from "node:util";
 import { loadConfig, type ServerConfig } from "./config.js";
 import { createServer } from "./server.js";
 import {
@@ -15,10 +13,9 @@ import {
   verifyBridgeRuntime,
 } from "./security-verification.js";
 import { shutdownHttpServer } from "./server-shutdown.js";
-import { defaultBridgeSecretFile, reporelayConfigDir } from "./user-config.js";
+import { defaultBridgeSecretFile, protectUserSecretFile, reporelayConfigDir } from "./user-config.js";
 
 const BRIDGE_SECRET_MIN_LENGTH = 32;
-const execFileAsync = promisify(execFile);
 const AGENTS_MARKER = "<!-- reporelay-handoff-v1 -->";
 const AGENTS_SECTION = [
   AGENTS_MARKER,
@@ -72,7 +69,7 @@ export async function ensureQuickstartBridgeSecret(secretFile: string): Promise<
   if (existsSync(secretFile)) {
     const existingStats = lstatSync(secretFile);
     if (!existingStats.isFile() || existingStats.isSymbolicLink()) throw new Error(`Bridge secret path is not a regular non-link file: ${secretFile}`);
-    await protectQuickstartBridgeSecret(secretFile);
+    await protectUserSecretFile(secretFile);
     const existing = (await readFile(secretFile, "utf8")).trim();
     if (existing.length < BRIDGE_SECRET_MIN_LENGTH) throw new Error(`Bridge secret at ${secretFile} is shorter than ${BRIDGE_SECRET_MIN_LENGTH} characters.`);
     return existing;
@@ -81,31 +78,8 @@ export async function ensureQuickstartBridgeSecret(secretFile: string): Promise<
   const secret = randomBytes(32).toString("base64url");
   await mkdir(dirname(secretFile), { recursive: true });
   await writeFile(secretFile, secret, { encoding: "utf8", mode: 0o600, flag: "wx" });
-  await protectQuickstartBridgeSecret(secretFile);
+  await protectUserSecretFile(secretFile);
   return secret;
-}
-
-async function protectQuickstartBridgeSecret(secretFile: string): Promise<void> {
-  if (process.platform !== "win32") {
-    await chmod(secretFile, 0o600);
-    return;
-  }
-
-  const { stdout } = await execFileAsync("whoami.exe", [], { encoding: "utf8", windowsHide: true });
-  const identity = stdout.trim();
-  if (!identity || /[\r\n]/.test(identity)) throw new Error("Could not resolve the current Windows identity for bridge-secret ACL protection.");
-
-  await execFileAsync("icacls.exe", [
-    secretFile,
-    "/inheritance:r",
-    "/remove:g",
-    "*S-1-1-0",
-    "*S-1-5-11",
-    "*S-1-5-32-545",
-    "/grant:r",
-    `${identity}:R`,
-    "*S-1-5-18:R",
-  ], { encoding: "utf8", windowsHide: true });
 }
 
 function handoffTemplates(): Array<{ name: string; content: string }> {

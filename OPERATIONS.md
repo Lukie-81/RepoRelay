@@ -32,14 +32,21 @@ An existing `AGENTS.md` is preserved; pass `-AppendAgentInstructions` only
 after reviewing the external backup behavior.
 
 Keep bridge secrets, tunnel credentials, tunnel binaries, and tunnel profiles
-outside every repository. RepoRelay intentionally has two runtime layouts:
+outside every repository. RepoRelay intentionally has separate runtime layouts:
 
 - CLI quickstart uses `%LOCALAPPDATA%\RepoRelay\reporelay-bridge-secret.txt`.
+- CLI tunnel setup adds `%LOCALAPPDATA%\RepoRelay\tunnel\config.json`, the
+  `profiles\reporelay.yaml` profile, and the protected
+  `secrets\openai-runtime-api-key.txt` file.
 - Managed Windows and tunnel lifecycle scripts default to
   `%LOCALAPPDATA%\RepoRelay\tunnel-client\secrets\reporelay-bridge-secret.txt`.
 
 When a lifecycle script is given `-BridgeSecretFile`, that explicit path is
 used instead of its managed-lifecycle default.
+
+For the CLI tunnel path, use `reporelay tunnel setup`, then
+`reporelay tunnel doctor`, then `reporelay tunnel run`. The setup command does
+not download the official `tunnel-client` or accept a runtime key on argv.
 
 ## Local loopback validation
 

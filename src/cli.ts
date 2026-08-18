@@ -6,10 +6,11 @@ import { formatSecurityAudit, resolveAuditBridgeSecret, runSecurityAudit } from 
 import { createServer } from "./server.js";
 import { loadConfig } from "./config.js";
 import { startQuickstart, type QuickstartSummary } from "./quickstart.js";
+import { doctorTunnel, runTunnel as startTunnel, setupTunnel } from "./tunnel.js";
 import { reporelayConfigDir } from "./user-config.js";
 import { shutdownHttpServer } from "./server-shutdown.js";
 
-type Command = "serve" | "quickstart" | "audit" | "doctor" | "help" | "version";
+type Command = "serve" | "quickstart" | "audit" | "doctor" | "tunnel" | "help" | "version";
 const SUPPORTED_NODE_MAJOR = 22;
 const SUPPORTED_NODE_MIN_MINOR = 19;
 const SUPPORTED_NODE_MAX_MAJOR = 27;
@@ -31,6 +32,9 @@ async function main(argv: string[]): Promise<void> {
     case "doctor":
       runDoctor();
       return;
+    case "tunnel":
+      await runTunnelCommand(args);
+      return;
     case "help":
       printHelp();
       return;
@@ -42,7 +46,7 @@ async function main(argv: string[]): Promise<void> {
 
 function normalizeCommand(command: string | undefined): Command {
   if (!command || command === "serve" || command === "start") return "serve";
-  if (command === "quickstart" || command === "audit" || command === "doctor") return command;
+  if (command === "quickstart" || command === "audit" || command === "doctor" || command === "tunnel") return command;
   if (command === "help" || command === "--help" || command === "-h") return "help";
   if (command === "version" || command === "--version" || command === "-v") return "version";
   throw new Error(`Unknown command: ${command}`);
@@ -68,6 +72,17 @@ interface AuditArgs {
   json: boolean;
   secretFile?: string;
   handoffWrites?: boolean;
+}
+
+interface TunnelSetupArgs {
+  tunnelId?: string;
+  tunnelClientPath?: string;
+  interactive: boolean;
+}
+
+interface TunnelDoctorArgs {
+  verbose: boolean;
+  tunnelClientPath?: string;
 }
 
 function parseQuickstartArgs(args: string[]): QuickstartArgs {
@@ -138,6 +153,72 @@ async function runAudit(args: string[]): Promise<void> {
   if (parsed.json) console.log(JSON.stringify(report));
   else console.log(formatSecurityAudit(report));
   if (!report.passed) process.exitCode = 1;
+}
+
+async function runTunnelCommand(args: string[]): Promise<void> {
+  const [subcommand, ...subcommandArgs] = args;
+  if (!subcommand || subcommand === "help" || subcommand === "--help" || subcommand === "-h") {
+    printTunnelHelp();
+    return;
+  }
+  if (subcommandArgs.includes("--help") || subcommandArgs.includes("-h")) {
+    printTunnelHelp();
+    return;
+  }
+  if (subcommand === "setup") {
+    const parsed = parseTunnelSetupArgs(subcommandArgs);
+    await setupTunnel(parsed);
+    return;
+  }
+  if (subcommand === "doctor") {
+    const parsed = parseTunnelDoctorArgs(subcommandArgs);
+    const passed = await doctorTunnel(parsed);
+    if (!passed) process.exitCode = 1;
+    return;
+  }
+  if (subcommand === "run") {
+    if (subcommandArgs.length > 0) throw new Error("Usage: reporelay tunnel run");
+    const exitCode = await startTunnel();
+    if (exitCode !== 0) process.exitCode = exitCode;
+    return;
+  }
+  throw new Error(`Unknown tunnel command: ${subcommand}`);
+}
+
+function parseTunnelSetupArgs(args: string[]): TunnelSetupArgs {
+  const parsed: TunnelSetupArgs = { interactive: true };
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg === "--tunnel-id") {
+      const value = args[++index];
+      if (!value) throw new Error("--tunnel-id expects a tunnel ID.");
+      parsed.tunnelId = value;
+    } else if (arg === "--tunnel-client-path") {
+      const value = args[++index];
+      if (!value) throw new Error("--tunnel-client-path expects an executable path.");
+      parsed.tunnelClientPath = value;
+    } else if (arg === "--non-interactive") parsed.interactive = false;
+    else if (arg === "--runtime-api-key" || arg === "--api-key" || arg === "--control-plane.api-key" || /^(?:--runtime-api-key|--api-key|--control-plane\.api-key)=/.test(arg ?? "")) {
+      throw new Error("Do not pass runtime API keys on the command line. `reporelay tunnel setup` prompts without echo and stores the key in a protected file.");
+    } else if (arg?.startsWith("-")) throw new Error(`Unknown tunnel setup option: ${arg}`);
+    else throw new Error("Usage: reporelay tunnel setup [--tunnel-id <id>] [--tunnel-client-path <path>] [--non-interactive]");
+  }
+  return parsed;
+}
+
+function parseTunnelDoctorArgs(args: string[]): TunnelDoctorArgs {
+  const parsed: TunnelDoctorArgs = { verbose: false };
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
+    if (arg === "--verbose") parsed.verbose = true;
+    else if (arg === "--tunnel-client-path") {
+      const value = args[++index];
+      if (!value) throw new Error("--tunnel-client-path expects an executable path.");
+      parsed.tunnelClientPath = value;
+    } else if (arg?.startsWith("-")) throw new Error(`Unknown tunnel doctor option: ${arg}`);
+    else throw new Error("Usage: reporelay tunnel doctor [--verbose] [--tunnel-client-path <path>]");
+  }
+  return parsed;
 }
 
 function printQuickstartSummary(summary: QuickstartSummary): void {
@@ -243,6 +324,9 @@ function printHelp(): void {
     "  reporelay quickstart     Initialize handoff files and self-test the bridge",
     "  reporelay audit <repo>   Verify repository, bridge, MCP surface, and containment",
     "  reporelay doctor         Show configuration and security status",
+    "  reporelay tunnel setup  Configure the OpenAI Secure MCP Tunnel once",
+    "  reporelay tunnel doctor Check tunnel credentials, reachability, and auth",
+    "  reporelay tunnel run    Run tunnel-client in the foreground",
     "  reporelay help           Show this help",
     "  reporelay version        Print the installed version",
     "  reporelay --version      Print the installed version",
@@ -259,9 +343,29 @@ function printHelp(): void {
     "  --secret-file <path>     Protected bridge secret file (optional after quickstart)",
     "  --no-handoff-writes      Verify the four-tool read-only surface",
     "",
+    "Tunnel setup:",
+    "  --tunnel-id <id>        OpenAI tunnel ID (optional when prompted)",
+    "  --tunnel-client-path    Use a downloaded tunnel-client executable",
+    "  --non-interactive       Reuse existing protected credentials only",
+    "",
+    "Tunnel doctor:",
+    "  --verbose               Show redacted diagnostics",
+    "",
     "The bridge requires X-RepoRelay-Bridge-Secret and never exposes shell, process, Git, patch, artifact, worktree, skill, subagent, or unrestricted write tools.",
     "",
     "Docs: https://github.com/Lukie-81/RepoRelay#readme",
+  ].join("\n"));
+}
+
+function printTunnelHelp(): void {
+  console.log([
+    "RepoRelay tunnel",
+    "",
+    "  reporelay tunnel setup   Save the tunnel ID, protected runtime key, and profile",
+    "  reporelay tunnel doctor  Run tunnel-client doctor --profile reporelay --explain",
+    "  reporelay tunnel run     Run the configured profile in the foreground",
+    "",
+    "The setup command never accepts a runtime API key as an argument.",
   ].join("\n"));
 }
 
