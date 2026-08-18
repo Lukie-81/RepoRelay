@@ -1,7 +1,7 @@
 {
   "name": "reporelay-mcp",
   "mcpName": "io.github.Lukie-81/reporelay",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "A local-first MCP bridge for tightly controlled repository review and structured coding-agent handoffs.",
   "type": "module",
   "main": "dist/server.js",

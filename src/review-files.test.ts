@@ -6,6 +6,7 @@ import {
   listReviewDirectory,
   readReviewTextFile,
   ReviewAccessDeniedError,
+  resolveReviewWorkspaceRoot,
   searchReviewFiles,
   writeHandoffDocument,
 } from "./review-files.js";
@@ -17,6 +18,8 @@ await mkdir(join(workspace, ".ai-handoff"), { recursive: true });
 await mkdir(outside, { recursive: true });
 await writeFile(join(workspace, "inside.txt"), "inside marker\n", "utf8");
 await writeFile(join(workspace, ".env"), "environment secret\n", "utf8");
+await mkdir(join(workspace, ".git"), { recursive: true });
+await writeFile(join(workspace, ".git", "config"), "[remote \"origin\"]\n", "utf8");
 await writeFile(join(outside, "outside.txt"), "outside marker\n", "utf8");
 await writeFile(join(workspace, ".ai-handoff", "NEXT_TASK.md"), "next\n", "utf8");
 await writeFile(join(workspace, ".ai-handoff", "REVIEW.md"), "review\n", "utf8");
@@ -30,6 +33,12 @@ await assert.rejects(() => readReviewTextFile(workspace, "../outside/outside.txt
 await assert.rejects(() => readReviewTextFile(workspace, "escape/outside.txt"), ReviewAccessDeniedError);
 await assert.rejects(() => readReviewTextFile(workspace, "hard-link.txt"), ReviewAccessDeniedError);
 await assert.rejects(() => readReviewTextFile(workspace, ".env"), ReviewAccessDeniedError);
+await assert.rejects(() => readReviewTextFile(workspace, ".env."), ReviewAccessDeniedError);
+await assert.rejects(() => readReviewTextFile(workspace, ".git./config"), ReviewAccessDeniedError);
+await assert.rejects(
+  () => resolveReviewWorkspaceRoot(join(workspace, ".git"), [workspace]),
+  ReviewAccessDeniedError,
+);
 
 const listed = await listReviewDirectory(workspace, ".");
 assert.equal(listed.find((entry) => entry.path === "escape")?.type, "blocked-link");

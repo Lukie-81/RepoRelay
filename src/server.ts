@@ -176,7 +176,7 @@ function createMcpServer(config: ServerConfig, workspaces: WorkspaceRegistry): M
     {
       name: "reporelay",
       title: "RepoRelay",
-      version: "1.2.0",
+      version: "1.2.5",
       description: "A local-first MCP bridge for constrained repository review and fixed handoff coordination.",
     },
     {

@@ -101,6 +101,7 @@ export async function resolveReviewWorkspaceRoot(
     if (!isPathInside(canonicalRequested, canonicalAllowedRoot)) {
       throw new ReviewAccessDeniedError("Workspace resolves outside the canonical approved root.");
     }
+    assertReviewPathNotSensitive(relative(canonicalAllowedRoot, canonicalRequested));
 
     return canonicalRequested;
   }
@@ -304,6 +305,7 @@ async function resolveReviewExistingPath(
   if (!isPathInside(canonicalTarget, canonicalRoot)) {
     throw new ReviewAccessDeniedError(`Path resolves outside the workspace root: ${inputPath}`);
   }
+  assertReviewPathNotSensitive(relative(canonicalRoot, canonicalTarget));
 
   return {
     absolutePath: canonicalTarget,
@@ -322,6 +324,9 @@ function assertReviewPathNotSensitive(relativePath: string): void {
   }
 
   const filename = segments.at(-1)?.toLowerCase() ?? "";
+  if (process.platform === "win32" && segments.some((segment) => segment.includes(":"))) {
+    throw new ReviewAccessDeniedError(`Windows alternate data streams are not readable: ${relativePath}`);
+  }
   if (
     (filename === ".env" || (filename.startsWith(".env.") && filename !== ".env.example"))
     || BLOCKED_REVIEW_FILENAMES.has(filename)
@@ -391,6 +396,8 @@ async function verifyOpenHandle(
   const currentStats = currentPath.stats;
   if (
     !samePath(currentPath.absolutePath, expectedPath.absolutePath)
+    || openedStats.dev !== expectedPath.stats.dev
+    || openedStats.ino !== expectedPath.stats.ino
     || openedStats.dev !== currentStats.dev
     || openedStats.ino !== currentStats.ino
   ) {
