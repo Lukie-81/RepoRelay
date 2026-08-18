@@ -1,0 +1,45 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Lukie-81/reporelay",
+  "title": "RepoRelay",
+  "description": "Bounded local MCP access to one approved repository for AI read/search and structured handoffs.",
+  "version": "1.2.4",
+  "websiteUrl": "https://github.com/Lukie-81/RepoRelay",
+  "repository": {
+    "url": "https://github.com/Lukie-81/RepoRelay",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "reporelay-mcp",
+      "version": "1.2.4",
+      "runtimeHint": "npx",
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "quickstart"
+        },
+        {
+          "type": "positional",
+          "valueHint": "repository-root",
+          "description": "Absolute path to the repository RepoRelay may access.",
+          "format": "filepath",
+          "isRequired": true
+        }
+      ],
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://127.0.0.1:7676/mcp",
+        "headers": [
+          {
+            "name": "X-RepoRelay-Bridge-Secret",
+            "description": "Bridge secret generated and protected locally by RepoRelay.",
+            "isRequired": true,
+            "isSecret": true
+          }
+        ]
+      }
+    }
+  ]
+}

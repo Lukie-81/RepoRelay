@@ -88,6 +88,8 @@ export interface TunnelSetupOptions {
   readHiddenInput?: (prompt: string) => Promise<string>;
   /** Test-only injection for the doctor invocation during setup. */
   runCommand?: TunnelClientCommandRunner;
+  /** Test-only injection for the bridge-secret probe; defaults to the real fetch. */
+  fetchImpl?: typeof fetch;
   /** Test-only injection for opening the official OpenAI pages (command + args). */
   openUrl?: (command: string, args: string[]) => Promise<boolean>;
   /** Test-only injection for the tunnel-client archive download. */
@@ -114,6 +116,7 @@ export interface TunnelClientCommandResult {
 export type TunnelClientCommandRunner = (
   executable: string,
   args: string[],
+  env?: NodeJS.ProcessEnv,
 ) => Promise<TunnelClientCommandResult>;
 
 export interface TunnelDoctorOptions {
@@ -122,6 +125,8 @@ export interface TunnelDoctorOptions {
   verbose?: boolean;
   output?: (line: string) => void;
   runCommand?: TunnelClientCommandRunner;
+  /** Test-only injection for the bridge-secret probe; defaults to the real fetch. */
+  fetchImpl?: typeof fetch;
 }
 
 export interface TunnelRunOptions {
@@ -250,7 +255,7 @@ export async function setupTunnel(options: TunnelSetupOptions = {}): Promise<Tun
   output("");
 
   output("Testing connection...");
-  const doctor = await performDoctorChecks(paths, config, { tunnelClientPath: resolvedClient.path, runCommand: options.runCommand });
+  const doctor = await performDoctorChecks(paths, config, { tunnelClientPath: resolvedClient.path, runCommand: options.runCommand, fetchImpl: options.fetchImpl });
   if (doctor.passed) {
     output("✓ OpenAI runtime credential");
     output("✓ RepoRelay reachable");
@@ -319,12 +324,82 @@ async function promptValidTunnelId(
 async function performDoctorChecks(
   paths: TunnelPaths,
   config: TunnelOperatorConfig,
-  options: { tunnelClientPath: string; runCommand?: TunnelClientCommandRunner },
+  options: { tunnelClientPath: string; runCommand?: TunnelClientCommandRunner; fetchImpl?: typeof fetch },
 ): Promise<{ passed: boolean; diagnostics: string; exitCode: number }> {
   await validateTunnelState(paths, config);
-  const result = await (options.runCommand ?? runTunnelClientCommand)(options.tunnelClientPath, buildTunnelClientArgs("doctor", paths));
+  const run = options.runCommand ?? runTunnelClientCommand;
+  const result = await run(options.tunnelClientPath, buildTunnelClientArgs("doctor", paths));
   const diagnostics = [result.stdout, result.stderr].filter(Boolean).join("\n");
-  return { passed: isSuccessfulDoctorResult(result), diagnostics, exitCode: result.exitCode };
+  if (!isSuccessfulDoctorResult(result)) return { passed: false, diagnostics, exitCode: result.exitCode };
+
+  // tunnel-client doctor only checks that the runtime key is present and
+  // well-formed locally. Validate it for real against the OpenAI control
+  // plane with the same read-only lookup tunnel-client itself performs at
+  // startup, so a wrong or expired key is caught here instead of at run time.
+  const credential = await verifyRuntimeCredential(options.tunnelClientPath, paths, config.tunnelId, run);
+  if (!credential.passed) return { passed: false, diagnostics: credential.diagnostics, exitCode: 2 };
+
+  // tunnel-client doctor treats an HTTP 401 from the MCP origin as
+  // "reachable"; it never exercises the profile's bridge secret. Probe the
+  // running RepoRelay with the configured secret so auth is verified too.
+  const bridge = await verifyBridgeAuthentication(config.localMcpUrl ?? DEFAULT_REPORELAY_MCP_URL, paths.bridgeSecretFile, options.fetchImpl);
+  if (!bridge.passed) return { passed: false, diagnostics: bridge.diagnostics, exitCode: 2 };
+
+  return { passed: true, diagnostics, exitCode: result.exitCode };
+}
+
+/**
+ * Genuinely validates the stored OpenAI runtime API key by performing the same
+ * read-only control-plane tunnel lookup tunnel-client itself does at startup
+ * (`admin tunnels get`). The key is read from its protected file and passed to
+ * the child only through the documented CONTROL_PLANE_API_KEY environment
+ * variable - never on argv.
+ */
+async function verifyRuntimeCredential(
+  tunnelClientPath: string,
+  paths: TunnelPaths,
+  tunnelId: string,
+  runCommand: TunnelClientCommandRunner,
+): Promise<{ passed: boolean; diagnostics: string }> {
+  const apiKey = (await readFile(paths.runtimeApiKeyFile, "utf8")).trim();
+  if (!apiKey) return { passed: false, diagnostics: "The OpenAI runtime credential is empty." };
+  const result = await runCommand(tunnelClientPath, ["admin", "tunnels", "get", tunnelId], { ...process.env, CONTROL_PLANE_API_KEY: apiKey });
+  if (result.exitCode === 0) return { passed: true, diagnostics: "" };
+  const output = [result.stdout, result.stderr].filter(Boolean).join("\n");
+  if (/401|403|invalid_api_key|unauthorized|forbidden/i.test(output)) {
+    return { passed: false, diagnostics: "The OpenAI control plane rejected the runtime credential or tunnel ID." };
+  }
+  if (/404|not found/i.test(output)) {
+    return { passed: false, diagnostics: "The OpenAI control plane could not find the tunnel ID." };
+  }
+  return { passed: false, diagnostics: "Network error while contacting the OpenAI control plane." };
+}
+
+/**
+ * Verifies the configured bridge secret against the RepoRelay that is actually
+ * running: probes the local MCP endpoint with the secret from the protected
+ * file. A 401 means the running RepoRelay uses a different secret; a network
+ * failure means it is not running at the configured endpoint.
+ */
+async function verifyBridgeAuthentication(
+  localMcpUrl: string,
+  bridgeSecretFile: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ passed: boolean; diagnostics: string }> {
+  const secret = (await readFile(bridgeSecretFile, "utf8")).trim();
+  if (!secret) return { passed: false, diagnostics: "The RepoRelay bridge secret is empty." };
+  try {
+    const response = await fetchImpl(localMcpUrl, {
+      headers: { "X-RepoRelay-Bridge-Secret": secret },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (response.status === 401) {
+      return { passed: false, diagnostics: "The running RepoRelay rejected the configured bridge secret (HTTP 401)." };
+    }
+    return { passed: true, diagnostics: "" };
+  } catch {
+    return { passed: false, diagnostics: `RepoRelay is not currently running at ${localMcpUrl}.` };
+  }
 }
 
 function describeSetupDoctorFailure(diagnostics: string): string {
@@ -335,8 +410,14 @@ function describeSetupDoctorFailure(diagnostics: string): string {
   if (/bridge|401|unauthorized|forbidden/.test(lower)) {
     return "Bridge authentication failed. Confirm RepoRelay is running with its canonical bridge secret, then retry.";
   }
-  if (/mcp_server_reachable/.test(lower)) {
+  if (/mcp_server_reachable|is not currently running/.test(lower)) {
     return notRunningMessage();
+  }
+  if (/control plane rejected|could not find the tunnel/.test(lower)) {
+    return "The OpenAI runtime credential or tunnel ID was not accepted. Check them in OpenAI Platform, then retry.";
+  }
+  if (/network error while contacting the openai control plane/.test(lower)) {
+    return "Could not reach the OpenAI control plane. Check your internet connection, then retry.";
   }
   if (/api key|api_key|tunnel id|tunnel_id|control_plane/.test(lower)) {
     return "The OpenAI runtime credential or tunnel ID was not accepted. Check them in OpenAI Platform, then retry.";
@@ -379,7 +460,7 @@ export async function doctorTunnel(options: TunnelDoctorOptions = {}): Promise<b
     output("✓ tunnel-client found");
     output("✓ tunnel-client profile configured");
     output(`✓ Local MCP endpoint: ${localMcpUrl}`);
-    const result = await performDoctorChecks(paths, config, { tunnelClientPath, runCommand: options.runCommand });
+    const result = await performDoctorChecks(paths, config, { tunnelClientPath, runCommand: options.runCommand, fetchImpl: options.fetchImpl });
     diagnostics = result.diagnostics;
     if (result.passed) {
       output("✓ Tunnel configuration valid");
@@ -458,12 +539,13 @@ async function spawnTunnelClient(executable: string, args: string[], output: (li
   });
 }
 
-async function runTunnelClientCommand(executable: string, args: string[]): Promise<TunnelClientCommandResult> {
+async function runTunnelClientCommand(executable: string, args: string[], env?: NodeJS.ProcessEnv): Promise<TunnelClientCommandResult> {
   try {
     const result = await execFileAsync(executable, args, {
       encoding: "utf8",
       windowsHide: true,
       maxBuffer: 2 * 1024 * 1024,
+      ...(env ? { env } : {}),
     });
     return { exitCode: 0, stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
@@ -529,12 +611,16 @@ async function ensureRuntimeApiKeyFile(
     options.output("");
     options.output("Input is hidden; nothing will appear while you paste or type.");
     options.output("");
-    options.output("Runtime API key:");
-    runtimeApiKey = await options.promptHidden("> ");
+    for (;;) {
+      options.output("Runtime API key:");
+      runtimeApiKey = (await options.promptHidden("> ")).trim();
+      if (runtimeApiKey) break;
+      options.output("No key was entered. Paste the runtime API key again (or press Ctrl+C to cancel).");
+    }
+  } else {
+    runtimeApiKey = runtimeApiKey.trim();
   }
-  runtimeApiKey = runtimeApiKey.trim();
   if (!runtimeApiKey) throw new Error("The OpenAI runtime API key cannot be empty.");
-  if (runtimeApiKey.length < 1) throw new Error("The OpenAI runtime API key cannot be empty.");
 
   await mkdir(paths.secretDir, { recursive: true });
   if (keyExists && options.replace) {
@@ -651,8 +737,14 @@ function nextDoctorStep(diagnostics: string): string {
   if (/bridge|401|unauthorized|forbidden/.test(lower)) {
     return "Check that RepoRelay is running with its canonical bridge secret, then rerun the doctor.";
   }
-  if (/mcp_server_reachable/.test(lower)) {
+  if (/mcp_server_reachable|is not currently running/.test(lower)) {
     return "Start RepoRelay with `reporelay quickstart <repository>` (add `--port <port>` if you configured a custom port) and rerun the doctor.";
+  }
+  if (/control plane rejected|could not find the tunnel/.test(lower)) {
+    return "Check the tunnel ID and the protected runtime API-key file, then rerun the doctor.";
+  }
+  if (/network error while contacting the openai control plane/.test(lower)) {
+    return "Check your internet connection and rerun the doctor.";
   }
   if (/api key|api_key|tunnel id|tunnel_id|control_plane/.test(lower)) {
     return "Check the tunnel ID and the protected runtime API-key file, then rerun the doctor.";

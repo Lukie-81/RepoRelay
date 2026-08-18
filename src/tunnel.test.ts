@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { createServer as createTcpServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { crc32, deflateRawSync } from "node:zlib";
-import { ensureQuickstartBridgeSecret } from "./quickstart.js";
+import { ensureQuickstartBridgeSecret, startQuickstart } from "./quickstart.js";
 import { writeActiveLocalMcpUrl } from "./tunnel-config.js";
+import { grantUserFullControl, protectUserSecretFile } from "./user-config.js";
 import {
   OFFICIAL_OPENAI_URLS,
   managedTunnelClientExecutablePath,
@@ -26,6 +28,7 @@ import {
 const fixtureRoot = await mkdtemp(join(tmpdir(), "reporelay-tunnel-test-"));
 
 const okRunCommand = async (): Promise<TunnelClientCommandResult> => ({ exitCode: 0, stdout: "doctor passed", stderr: "" });
+const okFetch = async () => ({ status: 200 }) as Response;
 
 // ---- Synthetic host-artifact archive ---------------------------------------
 
@@ -125,6 +128,7 @@ const first = await setupTunnel({
   },
   verify: verifyAgainstArchive,
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 
 assert.equal(first.doctorPassed, true);
@@ -204,6 +208,7 @@ const repeat = await setupTunnel({
     throw new Error("unexpected redownload on repeat setup");
   },
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(repeat.doctorPassed, true);
 assert.equal(repeat.config.tunnelId, tunnelId);
@@ -234,6 +239,7 @@ const replaceResult = await setupTunnel({
     return true;
   },
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(replaceResult.config.tunnelId, newTunnelId);
 assert.equal(JSON.parse(await readFile(firstPaths.configFile, "utf8")).tunnelId, newTunnelId);
@@ -263,6 +269,7 @@ const noOpenResult = await setupTunnel({
   download: async () => hostArchive.zip,
   verify: verifyAgainstArchive,
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(noOpenResult.doctorPassed, true);
 assert.equal(noOpenOutput.some((line) => line.includes("Opening OpenAI Platform...")), false);
@@ -286,6 +293,7 @@ const nonInteractiveResult = await setupTunnel({
   download: async () => hostArchive.zip,
   verify: verifyAgainstArchive,
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(nonInteractiveResult.doctorPassed, true);
 assert.equal(nonInteractiveResult.config.tunnelClientSource, "managed");
@@ -308,6 +316,7 @@ const idLoopResult = await setupTunnel({
   download: async () => hostArchive.zip,
   verify: verifyAgainstArchive,
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(idLoopResult.config.tunnelId, tunnelId);
 assert.ok(idLoopOutput.some((line) => line.includes("does not look like a tunnel ID")));
@@ -332,6 +341,7 @@ const customSetup = await setupTunnel({
     throw new Error("custom tunnel-client must never trigger a download");
   },
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(customSetup.config.tunnelClientSource, "custom");
 assert.equal(customSetup.config.tunnelClientPath, process.execPath);
@@ -397,6 +407,180 @@ const doctorAuthFailResult = await setupTunnel({
 assert.equal(doctorAuthFailResult.doctorPassed, false);
 assert.ok(doctorAuthFailOutput.some((line) => line.includes("Bridge authentication failed")));
 
+// ---- Genuine credential validation: the control plane is consulted ----------
+
+const credentialFailRoot = join(fixtureRoot, "credential-rejection");
+const credentialFailEnv = { ...process.env, REPORELAY_CONFIG_DIR: credentialFailRoot };
+const credentialFailPaths = getTunnelPaths(credentialFailEnv);
+await ensureQuickstartBridgeSecret(credentialFailPaths.bridgeSecretFile);
+const credentialFailOutput: string[] = [];
+const credentialFailResult = await setupTunnel({
+  env: credentialFailEnv,
+  tunnelId,
+  runtimeApiKey,
+  interactive: false,
+  output: (line) => credentialFailOutput.push(line),
+  download: async () => hostArchive.zip,
+  verify: verifyAgainstArchive,
+  fetchImpl: okFetch,
+  runCommand: async (_executable, args) => {
+    if (args[0] === "admin") return { exitCode: 1, stdout: "request GET /v1/tunnels/tunnel_... failed: 401 invalid_api_key", stderr: "" };
+    return { exitCode: 0, stdout: "doctor passed", stderr: "" };
+  },
+});
+assert.equal(credentialFailResult.doctorPassed, false, "a rejected runtime key must fail the connection test");
+assert.ok(credentialFailOutput.some((line) => line.includes("runtime credential or tunnel ID was not accepted")));
+assert.ok(credentialFailOutput.some((line) => line.includes("Setup was saved, but the connection test did not pass.")));
+
+const credentialNetworkRoot = join(fixtureRoot, "credential-network");
+const credentialNetworkEnv = { ...process.env, REPORELAY_CONFIG_DIR: credentialNetworkRoot };
+const credentialNetworkPaths = getTunnelPaths(credentialNetworkEnv);
+await ensureQuickstartBridgeSecret(credentialNetworkPaths.bridgeSecretFile);
+const credentialNetworkOutput: string[] = [];
+const credentialNetworkResult = await setupTunnel({
+  env: credentialNetworkEnv,
+  tunnelId,
+  runtimeApiKey,
+  interactive: false,
+  output: (line) => credentialNetworkOutput.push(line),
+  download: async () => hostArchive.zip,
+  verify: verifyAgainstArchive,
+  fetchImpl: okFetch,
+  runCommand: async (_executable, args) => {
+    if (args[0] === "admin") return { exitCode: 1, stdout: "dial tcp: i/o timeout", stderr: "" };
+    return { exitCode: 0, stdout: "doctor passed", stderr: "" };
+  },
+});
+assert.equal(credentialNetworkResult.doctorPassed, false);
+assert.ok(credentialNetworkOutput.some((line) => line.includes("Could not reach the OpenAI control plane")));
+
+// ---- Genuine bridge-secret validation against the running RepoRelay ---------
+
+const bridgeMismatchRoot = join(fixtureRoot, "bridge-mismatch");
+const bridgeMismatchEnv = { ...process.env, REPORELAY_CONFIG_DIR: bridgeMismatchRoot };
+const bridgeMismatchPaths = getTunnelPaths(bridgeMismatchEnv);
+await ensureQuickstartBridgeSecret(bridgeMismatchPaths.bridgeSecretFile);
+const bridgeMismatchOutput: string[] = [];
+const bridgeMismatchResult = await setupTunnel({
+  env: bridgeMismatchEnv,
+  tunnelId,
+  runtimeApiKey,
+  interactive: false,
+  output: (line) => bridgeMismatchOutput.push(line),
+  download: async () => hostArchive.zip,
+  verify: verifyAgainstArchive,
+  runCommand: okRunCommand,
+  fetchImpl: async () => ({ status: 401 }) as Response,
+});
+assert.equal(bridgeMismatchResult.doctorPassed, false, "a 401 from the running RepoRelay must fail the connection test");
+assert.ok(bridgeMismatchOutput.some((line) => line.includes("Bridge authentication failed")));
+
+const bridgeDownRoot = join(fixtureRoot, "bridge-down");
+const bridgeDownEnv = { ...process.env, REPORELAY_CONFIG_DIR: bridgeDownRoot };
+const bridgeDownPaths = getTunnelPaths(bridgeDownEnv);
+await ensureQuickstartBridgeSecret(bridgeDownPaths.bridgeSecretFile);
+const bridgeDownOutput: string[] = [];
+const bridgeDownResult = await setupTunnel({
+  env: bridgeDownEnv,
+  tunnelId,
+  runtimeApiKey,
+  interactive: false,
+  output: (line) => bridgeDownOutput.push(line),
+  download: async () => hostArchive.zip,
+  verify: verifyAgainstArchive,
+  runCommand: okRunCommand,
+  fetchImpl: async () => {
+    throw new Error("connect ECONNREFUSED 127.0.0.1:7676");
+  },
+});
+assert.equal(bridgeDownResult.doctorPassed, false, "an unreachable RepoRelay must fail the connection test");
+assert.ok(bridgeDownOutput.some((line) => line.includes("RepoRelay is not currently running")));
+
+// ---- An empty API key paste re-prompts instead of aborting setup ------------
+
+const emptyPasteRoot = join(fixtureRoot, "empty-paste");
+const emptyPasteEnv = { ...process.env, REPORELAY_CONFIG_DIR: emptyPasteRoot };
+const emptyPastePaths = getTunnelPaths(emptyPasteEnv);
+await ensureQuickstartBridgeSecret(emptyPastePaths.bridgeSecretFile);
+const emptyPasteOutput: string[] = [];
+const emptyPasteInputs = ["", "   ", runtimeApiKey];
+const emptyPasteResult = await setupTunnel({
+  env: emptyPasteEnv,
+  interactive: true,
+  output: (line) => emptyPasteOutput.push(line),
+  readVisibleInput: async () => tunnelId,
+  readHiddenInput: async () => emptyPasteInputs.shift() ?? "",
+  openUrl: async () => false,
+  download: async () => hostArchive.zip,
+  verify: verifyAgainstArchive,
+  runCommand: okRunCommand,
+  fetchImpl: okFetch,
+});
+assert.equal(emptyPasteResult.doctorPassed, true);
+assert.ok(emptyPasteOutput.some((line) => line.includes("No key was entered")));
+assert.equal((await readFile(emptyPastePaths.runtimeApiKeyFile, "utf8")).trim(), runtimeApiKey);
+
+// ---- Real bridge: doctor verifies the bridge secret end-to-end --------------
+
+async function findEphemeralPort(): Promise<number> {
+  const server = createTcpServer();
+  let listening = false;
+  try {
+    await new Promise<void>((resolveListen, rejectListen) => {
+      server.once("error", rejectListen);
+      server.listen(0, "127.0.0.1", () => {
+        listening = true;
+        resolveListen();
+      });
+    });
+    const address = server.address();
+    if (typeof address === "string" || address === null) throw new Error("Ephemeral test listener did not expose a TCP port.");
+    return address.port;
+  } finally {
+    if (listening) await new Promise<void>((resolveClose, rejectClose) => server.close((error) => error ? rejectClose(error) : resolveClose()));
+  }
+}
+
+const liveRoot = join(fixtureRoot, "live-bridge");
+const liveEnv = { ...process.env, REPORELAY_CONFIG_DIR: liveRoot };
+const livePaths = getTunnelPaths(liveEnv);
+await ensureQuickstartBridgeSecret(livePaths.bridgeSecretFile);
+const liveWorkspace = join(liveRoot, "workspace");
+await mkdir(liveWorkspace, { recursive: true });
+const livePort = await findEphemeralPort();
+await mkdir(livePaths.profileDir, { recursive: true });
+await mkdir(livePaths.secretDir, { recursive: true });
+await writeFile(livePaths.configFile, `${JSON.stringify({ schemaVersion: 1, tunnelId, profile: "reporelay", tunnelClientPath: process.execPath, localMcpUrl: `http://127.0.0.1:${livePort}/mcp` }, null, 2)}\n`, "utf8");
+await writeFile(livePaths.profileFile, buildTunnelProfile(livePaths, tunnelId, `http://127.0.0.1:${livePort}/mcp`), "utf8");
+await writeFile(livePaths.runtimeApiKeyFile, `${runtimeApiKey}\n`, "utf8");
+const liveRuntime = await startQuickstart({ repositoryRoot: liveWorkspace, port: livePort, secretFile: livePaths.bridgeSecretFile, env: liveEnv });
+try {
+  const liveOutput: string[] = [];
+  const livePassed = await doctorTunnel({
+    env: liveEnv,
+    output: (line) => liveOutput.push(line),
+    runCommand: okRunCommand,
+    // No fetchImpl: the real bridge probe must accept the real secret file.
+  });
+  assert.equal(livePassed, true, "doctor must pass against a real bridge with the matching secret");
+  assert.ok(liveOutput.includes("✓ Bridge authentication working"));
+
+  // A mismatched secret file must now be caught by the real probe.
+  await grantUserFullControl(livePaths.bridgeSecretFile);
+  await writeFile(livePaths.bridgeSecretFile, `${"x".repeat(40)}\n`, "utf8");
+  await protectUserSecretFile(livePaths.bridgeSecretFile);
+  const badBridgeOutput: string[] = [];
+  const badBridgePassed = await doctorTunnel({
+    env: liveEnv,
+    output: (line) => badBridgeOutput.push(line),
+    runCommand: okRunCommand,
+  });
+  assert.equal(badBridgePassed, false, "doctor must fail when the secret file does not match the running RepoRelay");
+  assert.ok(badBridgeOutput.some((line) => line.includes("canonical bridge secret")));
+} finally {
+  await liveRuntime.stop();
+}
+
 // ---- Install failure aborts before writing configuration --------------------
 
 const installFailRoot = join(fixtureRoot, "install-failure");
@@ -433,6 +617,7 @@ const customPortSetup = await setupTunnel({
   interactive: false,
   output: () => undefined,
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(customPortSetup.config.localMcpUrl, "http://127.0.0.1:7677/mcp");
 assert.equal(JSON.parse(await readFile(customPortPaths.configFile, "utf8")).localMcpUrl, "http://127.0.0.1:7677/mcp");
@@ -443,6 +628,7 @@ const doctorEndpointPassed = await doctorTunnel({
   env: customPortEnv,
   output: (line) => doctorEndpointOutput.push(line),
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(doctorEndpointPassed, true);
 assert.ok(doctorEndpointOutput.includes("✓ Local MCP endpoint: http://127.0.0.1:7677/mcp"));
@@ -464,6 +650,7 @@ const migratedDoctorPassed = await doctorTunnel({
   env: customPortEnv,
   output: () => undefined,
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(migratedDoctorPassed, true);
 assert.match(await readFile(customPortPaths.profileFile, "utf8"), /url: 'http:\/\/127\.0\.0\.1:7678\/mcp'/);
@@ -483,6 +670,7 @@ await setupTunnel({
   interactive: false,
   output: () => undefined,
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 const remoteConfig = JSON.parse(await readFile(remotePaths.configFile, "utf8")) as { localMcpUrl: string };
 remoteConfig.localMcpUrl = "https://mcp.example.com/mcp";
@@ -515,6 +703,7 @@ const hintSetup = await setupTunnel({
   interactive: false,
   output: () => undefined,
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(hintSetup.config.localMcpUrl, "http://127.0.0.1:7777/mcp");
 
@@ -534,6 +723,7 @@ const legacyPassed = await doctorTunnel({
   env: legacyEnv,
   output: (line) => legacyDoctorOutput.push(line),
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(legacyPassed, true);
 assert.ok(legacyDoctorOutput.includes("✓ Local MCP endpoint: http://127.0.0.1:7676/mcp"));
@@ -553,6 +743,7 @@ const preserveSetup = await setupTunnel({
   interactive: false,
   output: () => undefined,
   runCommand: okRunCommand,
+  fetchImpl: okFetch,
 });
 assert.equal(preserveSetup.doctorPassed, true);
 assert.equal(await readFile(firstPaths.runtimeApiKeyFile, "utf8"), existingKeyBefore);
@@ -565,9 +756,11 @@ const doctorPassed = await doctorTunnel({
   output: (line) => doctorOutput.push(line),
   runCommand: async (executable, args) => {
     assert.equal(executable, managedTunnelClientExecutablePath(firstEnv));
+    if (args[0] === "admin") return { exitCode: 0, stdout: "tunnel found", stderr: "" };
     assert.deepEqual(args, buildTunnelClientArgs("doctor", getTunnelPaths(firstEnv)));
     return { exitCode: 0, stdout: "doctor passed", stderr: "" };
   },
+  fetchImpl: okFetch,
 });
 assert.equal(doctorPassed, true);
 assert.ok(doctorOutput.includes("✓ OpenAI runtime credential accepted"));
@@ -577,16 +770,20 @@ const bridgeModeDoctorOutput: string[] = [];
 const bridgeModeDoctorPassed = await doctorTunnel({
   env: firstEnv,
   output: (line) => bridgeModeDoctorOutput.push(line),
-  runCommand: async () => ({
-    exitCode: 2,
-    stdout: [
-      "FAILED_CHECKS oauth_metadata",
-      "CHECK profile_load PASS",
-      "CHECK control_plane_api_key PASS",
-      "CHECK mcp_server_reachable PASS HTTP 401",
-    ].join("\n"),
-    stderr: "",
-  }),
+  runCommand: async (_executable, args) => {
+    if (args[0] === "admin") return { exitCode: 0, stdout: "tunnel found", stderr: "" };
+    return {
+      exitCode: 2,
+      stdout: [
+        "FAILED_CHECKS oauth_metadata",
+        "CHECK profile_load PASS",
+        "CHECK control_plane_api_key PASS",
+        "CHECK mcp_server_reachable PASS HTTP 401",
+      ].join("\n"),
+      stderr: "",
+    };
+  },
+  fetchImpl: okFetch,
 });
 assert.equal(bridgeModeDoctorPassed, true);
 assert.ok(bridgeModeDoctorOutput.includes("Ready."));

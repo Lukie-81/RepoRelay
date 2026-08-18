@@ -178,6 +178,13 @@ Next:
   reporelay tunnel run
 ```
 
+These checks are genuine. `tunnel-client doctor` alone only verifies that the
+runtime key is present and well-formed, so RepoRelay additionally validates
+the key against the OpenAI control plane with the same read-only tunnel lookup
+tunnel-client performs at startup, and probes the running RepoRelay with the
+configured bridge secret. A wrong or expired key, or a bridge-secret mismatch,
+is reported here instead of failing silently after `tunnel run` starts.
+
 Failures are intentionally concise. Use `reporelay tunnel doctor --verbose` for
 redacted diagnostics, then correct the indicated layer:
 
@@ -186,6 +193,7 @@ redacted diagnostics, then correct the indicated layer:
 | `tunnel-client` missing | Rerun `reporelay tunnel setup`; it re-downloads and verifies the managed client. |
 | Profile or credential file missing | Rerun `reporelay tunnel setup`; it preserves existing credentials. |
 | Runtime credential rejected | Confirm the Platform runtime API key and tunnel ID; do not use an admin key for the daemon. |
+| Control plane unreachable | RepoRelay could not contact OpenAI to validate the credential. Check your internet connection, then rerun the doctor. |
 | MCP unreachable | Keep the RepoRelay quickstart terminal running on the configured local endpoint (default `127.0.0.1:7676`), then rerun the doctor. |
 | Bridge authentication failed | Confirm the canonical RepoRelay bridge-secret file is present and rerun setup. |
 

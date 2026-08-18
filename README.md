@@ -269,6 +269,12 @@ Next:
   reporelay tunnel run
 ```
 
+These checks are genuine: setup validates the runtime API key against the
+OpenAI control plane (the same read-only tunnel lookup `tunnel-client` performs
+at startup) and verifies the bridge secret against the RepoRelay that is
+actually running. A wrong, expired, or mis-pasted key is caught here with a
+clear message &mdash; not after `tunnel run` starts.
+
 If your RepoRelay runs on a custom port (for example `--port 7677`),
 quickstart already recorded the live endpoint and setup follows it
 automatically &mdash; no extra flags needed.
@@ -487,6 +493,7 @@ if the tool definitions changed or ChatGPT asks you to.
 | `tunnel-client` missing | Rerun `reporelay tunnel setup`; it re-downloads and verifies the managed client. |
 | Invalid tunnel ID | The ID must look like `tunnel_` followed by 32 hex characters. Copy it again from Platform tunnel settings. |
 | Runtime credential rejected | Confirm the runtime API key and tunnel ID in Platform, and that your account has **Tunnels Read + Use**. Rerun `reporelay tunnel setup`. |
+| Control plane unreachable | RepoRelay could not contact OpenAI to validate the credential. Check your internet connection, then rerun `reporelay tunnel doctor`. |
 | Tunnel doctor cannot reach MCP | Keep the RepoRelay quickstart window running on the configured port, then rerun `reporelay tunnel doctor`. |
 | Bridge authentication failure | Do not paste a secret. Confirm quickstart is using the canonical bridge-secret file, then rerun `reporelay tunnel setup`. |
 | ChatGPT cannot see the tunnel | Check that the tunnel is associated with the target ChatGPT workspace (not only a Platform organization) and that you have tunnel-use permission. |

@@ -33,3 +33,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Local tooling and demo-video workspace (never part of the release)
+.freebuff/
+video/
