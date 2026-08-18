@@ -3,15 +3,16 @@
 ## Security boundary
 
 RepoRelay is an authenticated, loopback-only MCP bridge for one explicitly
-approved repository. It exposes exactly four read/search tools by default:
-`open_workspace`, `list_files`, `read_file`, and `search_files`.
+approved repository. The recommended CLI quickstart exposes exactly seven
+tools by default: the four inspection tools `open_workspace`, `list_files`,
+`read_file`, and `search_files`, plus the three fixed handoff writers. The
+optional inspection-only quickstart (`--no-handoff-writes`) exposes exactly
+four read/search tools, does not initialize `.ai-handoff`, and does not create
+or modify `AGENTS.md`.
 
-For the CLI Quickstart: Default Quickstart: 7 tools. Read-only mode
-(`--no-handoff-writes`): 4 tools.
-
-When `REPORELAY_HANDOFF_WRITES=1`, it adds exactly three pathless writers:
-`write_next_task`, `write_review`, and `update_handoff_state`. They can replace
-only the pre-existing `.ai-handoff/NEXT_TASK.md`, `.ai-handoff/REVIEW.md`, and
+The three handoff writers `write_next_task`, `write_review`, and
+`update_handoff_state` are pathless. They can replace only the pre-existing
+`.ai-handoff/NEXT_TASK.md`, `.ai-handoff/REVIEW.md`, and
 `.ai-handoff/STATE.json` files. `.ai-handoff/RESULT.md` remains implementer-
 owned and is not a writer target.
 

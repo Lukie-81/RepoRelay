@@ -45,8 +45,17 @@ When a lifecycle script is given `-BridgeSecretFile`, that explicit path is
 used instead of its managed-lifecycle default.
 
 For the CLI tunnel path, use `reporelay tunnel setup`, then
-`reporelay tunnel doctor`, then `reporelay tunnel run`. The setup command does
-not download the official `tunnel-client` or accept a runtime key on argv.
+`reporelay tunnel doctor`, then `reporelay tunnel run`. Setup downloads a
+RepoRelay-supported, SHA-256-verified `tunnel-client` into
+`%LOCALAPPDATA%\RepoRelay\tunnel\bin\<version>` and never accepts a runtime
+key on argv.
+
+Quickstart records its live local endpoint (`tunnel/local-mcp-url.txt` and the
+`localMcpUrl` field in `tunnel/config.json`), so a custom quickstart
+`--port` flows through `tunnel setup`, `tunnel doctor`, and `tunnel run`
+automatically. `reporelay tunnel setup --port <port>` sets it explicitly.
+The endpoint must be a loopback `http://127.0.0.1:<port>/mcp` URL; remote
+URLs are rejected.
 
 ## Local loopback validation
 
@@ -64,9 +73,10 @@ The secret file must contain at least 32 random characters. The scripts verify
 loopback ownership, unauthenticated rejection, the exact seven-tool surface,
 and that recorded logs do not contain the secret.
 
-## Optional HTTPS tunnel
+## Optional HTTPS tunnel (managed scripts)
 
-The external secure MCP tunnel client is not bundled. Configure it to forward
+The managed Windows scripts use a separately installed external secure MCP
+tunnel client (they do not bundle or download one). Configure it to forward
 to `127.0.0.1:7676`, inject `X-RepoRelay-Bridge-Secret` for discovery and
 runtime requests, and keep its administration listener on loopback. Verify
 health, readiness, probe status, and control-plane polling before treating a

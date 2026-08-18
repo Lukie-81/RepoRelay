@@ -20,9 +20,16 @@ being persisted in the repository.
 | `REPORELAY_LOG_TOOL_CALLS` | no | Tool-call logging; default `1`. |
 | `REPORELAY_CONFIG_DIR` | no | Optional location used by quickstart for the protected secret file. |
 
-The general server configuration defaults to the four-tool read-only surface.
-For the CLI Quickstart: Default Quickstart: 7 tools. Read-only mode
-(`--no-handoff-writes`): 4 tools.
+The general server profile defaults to the four-tool read-only surface. The
+recommended CLI quickstart defaults to the **7-tool handoff surface** (4
+inspection tools + 3 fixed handoff writers); the optional inspection-only mode
+(`--no-handoff-writes`) exposes exactly 4 tools and leaves the repository
+unchanged.
+
+When quickstart runs with a non-default `REPORELAY_PORT` (or `--port`), it
+records the live local endpoint so `reporelay tunnel setup`, `tunnel doctor`,
+and `tunnel run` target the same port without manual YAML editing. The tunnel
+endpoint is validated to be loopback-only; remote URLs are rejected.
 
 The header name is `X-RepoRelay-Bridge-Secret`. Header count is checked from
 the raw request, so duplicate values are rejected. The secret is never printed

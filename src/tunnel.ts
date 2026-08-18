@@ -1,7 +1,31 @@
 import { execFile, spawn } from "node:child_process";
-import { copyFile, lstat, mkdir, readFile, writeFile } from "node:fs/promises";
-import { delimiter, dirname, join, resolve } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { delimiter, join, resolve } from "node:path";
 import { promisify } from "node:util";
+import {
+  DEFAULT_REPORELAY_MCP_URL,
+  TUNNEL_PROFILE,
+  assertLocalMcpUrl,
+  assertNoInlineSecrets,
+  assertRegularFile,
+  assertTunnelId,
+  isErrorCode,
+  isRegularFile,
+  pathExists,
+  readActiveLocalMcpUrl,
+  readOptionalTunnelConfig,
+  readTunnelConfig,
+  resolveLocalMcpUrl,
+  writeManagedFile,
+  type TunnelOperatorConfig,
+} from "./tunnel-config.js";
+import {
+  OFFICIAL_OPENAI_URLS,
+  ensureManagedTunnelClient,
+  isManagedTunnelClientPath,
+  openOfficialUrl,
+  resolveTunnelClientArtifact,
+} from "./tunnel-client-install.js";
 import {
   defaultBridgeSecretFile,
   defaultTunnelConfigFile,
@@ -9,62 +33,18 @@ import {
   defaultTunnelProfileFile,
   defaultTunnelRuntimeApiKeyFile,
   defaultTunnelSecretDir,
+  grantUserFullControl,
   protectUserSecretFile,
   reporelayTunnelDir,
 } from "./user-config.js";
 
+export { DEFAULT_REPORELAY_MCP_URL, TUNNEL_PROFILE, type TunnelOperatorConfig } from "./tunnel-config.js";
+
 const execFileAsync = promisify(execFile);
 
-export const TUNNEL_PROFILE = "reporelay";
-export const DEFAULT_REPORELAY_MCP_URL = "http://127.0.0.1:7676/mcp";
-const TUNNEL_ID_PATTERN = /^tunnel_[0-9a-f]{32}$/;
 const BRIDGE_SECRET_MIN_LENGTH = 32;
 const GENERATED_PROFILE_MARKER = "# RepoRelay-managed tunnel-client profile.";
 const TUNNEL_CLIENT_DOWNLOAD_URL = "https://github.com/openai/tunnel-client/releases/latest";
-
-export const TUNNEL_CLIENT_PROMPT_HINT: readonly string[] = [
-  "1. OpenAI tunnel-client",
-  "",
-  "   RepoRelay needs OpenAI's official tunnel-client to connect",
-  "   this computer to the OpenAI Secure MCP Tunnel.",
-  "",
-  "   Download the latest official release:",
-  `   ${TUNNEL_CLIENT_DOWNLOAD_URL}`,
-  "",
-  "   Download the build for your operating system, extract it,",
-  "   then enter the full path to the tunnel-client executable.",
-  "",
-  "   Windows example:",
-  "   C:\\Users\\you\\Downloads\\tunnel-client\\tunnel-client.exe",
-  "",
-  "   On macOS/Linux, enter the path to the extracted tunnel-client file.",
-  "",
-];
-
-export const TUNNEL_ID_PROMPT_HINT: readonly string[] = [
-  "2. Tunnel ID",
-  "   Get it from OpenAI Platform → Secure MCP Tunnels:",
-  "   https://platform.openai.com/settings/organization/tunnels",
-  "",
-];
-
-export const RUNTIME_API_KEY_PROMPT_HINT: readonly string[] = [
-  "3. Runtime API key",
-  "",
-  "   Open:",
-  "   https://platform.openai.com/settings/organization/api-keys",
-  "",
-  "   1. Click Create new secret key.",
-  "   2. Choose the project you want to use with RepoRelay.",
-  "   3. Create the key and copy it when OpenAI shows it.",
-  "",
-  "   Separately, your OpenAI Platform account needs:",
-  "   Tunnels Read + Use",
-  "",
-  "   Tunnel permissions are organization permissions, not settings",
-  "   on the API key itself.",
-  "",
-];
 
 export const CHATGPT_COMPLETION_CHECKLIST: readonly string[] = [
   "ChatGPT Web completion checklist:",
@@ -85,17 +65,19 @@ export interface TunnelPaths {
   bridgeSecretFile: string;
 }
 
-export interface TunnelOperatorConfig {
-  schemaVersion: 1;
-  tunnelId: string;
-  profile: typeof TUNNEL_PROFILE;
-  tunnelClientPath: string;
-}
-
 export interface TunnelSetupOptions {
   env?: NodeJS.ProcessEnv;
   tunnelId?: string;
+  /** Advanced override; normal onboarding installs the RepoRelay-managed client. */
   tunnelClientPath?: string;
+  /** Loopback port for the local MCP endpoint (default: 7676). */
+  port?: number;
+  /** Do not launch the default browser (headless/SSH/CI). */
+  noOpen?: boolean;
+  /** Re-prompt for the tunnel ID even when one is already configured. */
+  replaceTunnel?: boolean;
+  /** Re-prompt for the runtime API key even when one is already stored. */
+  replaceRuntimeKey?: boolean;
   /** Test-only injection; the CLI never accepts a runtime key as an argument. */
   runtimeApiKey?: string;
   interactive?: boolean;
@@ -103,11 +85,23 @@ export interface TunnelSetupOptions {
   /** Test-only injection for the interactive prompts. */
   readVisibleInput?: (prompt: string) => Promise<string>;
   readHiddenInput?: (prompt: string) => Promise<string>;
+  /** Test-only injection for the doctor invocation during setup. */
+  runCommand?: TunnelClientCommandRunner;
+  /** Test-only injection for opening the official OpenAI pages (command + args). */
+  openUrl?: (command: string, args: string[]) => Promise<boolean>;
+  /** Test-only injection for the tunnel-client archive download. */
+  download?: (url: string) => Promise<Buffer>;
+  /** Test-only injection for archive verification. */
+  verify?: (buffer: Buffer, expectedSha256: string) => void;
+  /** Test-only injection for archive extraction. */
+  extract?: (zipBuffer: Buffer, destDir: string) => Promise<string[]>;
 }
 
 export interface TunnelSetupResult {
   paths: TunnelPaths;
   config: TunnelOperatorConfig;
+  /** False when the automatic connection test after setup did not pass. */
+  doctorPassed: boolean;
 }
 
 export interface TunnelClientCommandResult {
@@ -152,7 +146,7 @@ export function buildTunnelClientArgs(command: "doctor" | "run", paths: TunnelPa
   return [command, "--profile", TUNNEL_PROFILE, "--profile-dir", paths.profileDir, ...(command === "doctor" ? ["--explain"] : [])];
 }
 
-export function buildTunnelProfile(paths: TunnelPaths, tunnelId: string): string {
+export function buildTunnelProfile(paths: TunnelPaths, tunnelId: string, localMcpUrl?: string): string {
   const runtimeApiKeyRef = yamlScalar(fileReference(paths.runtimeApiKeyFile));
   const bridgeSecretRef = yamlScalar(fileReference(paths.bridgeSecretFile));
   return [
@@ -165,7 +159,7 @@ export function buildTunnelProfile(paths: TunnelPaths, tunnelId: string): string
     "mcp:",
     "  server_urls:",
     "    - channel: main",
-    `      url: ${yamlScalar(DEFAULT_REPORELAY_MCP_URL)}`,
+    `      url: ${yamlScalar(assertLocalMcpUrl(localMcpUrl ?? DEFAULT_REPORELAY_MCP_URL))}`,
     "  extra_headers:",
     `    X-RepoRelay-Bridge-Secret: ${bridgeSecretRef}`,
     "  discovery_extra_headers:",
@@ -179,58 +173,188 @@ export async function setupTunnel(options: TunnelSetupOptions = {}): Promise<Tun
   const output = options.output ?? console.log;
   const interactive = options.interactive ?? Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const paths = getTunnelPaths(env);
-  output("RepoRelay — ChatGPT Web setup");
-  const existingConfig = await readOptionalTunnelConfig(paths.configFile);
   const promptVisible = options.readVisibleInput ?? readVisibleInput;
   const promptHidden = options.readHiddenInput ?? readHiddenInput;
 
-  const tunnelClientPath = await resolveTunnelClientPath({
+  output("RepoRelay — Connect ChatGPT");
+  output("");
+  output("Checking local setup...");
+  await validateSecretFile(paths.bridgeSecretFile, "RepoRelay bridge secret", BRIDGE_SECRET_MIN_LENGTH, true);
+  output("✓ RepoRelay bridge found");
+  output("✓ Bridge authentication configured");
+  output("");
+
+  output("Preparing OpenAI tunnel client...");
+  const resolvedClient = await resolveSetupTunnelClient({
     env,
     preferredPath: options.tunnelClientPath,
-    storedPath: existingConfig?.tunnelClientPath,
     interactive,
     output,
-    readVisibleInput: promptVisible,
+    download: options.download,
+    verify: options.verify,
+    extract: options.extract,
   });
+  output("");
 
-  let tunnelId = options.tunnelId?.trim() || existingConfig?.tunnelId;
-  if (!tunnelId) {
+  const existingConfig = await readOptionalTunnelConfig(paths.configFile);
+  const localMcpUrl = resolveLocalMcpUrl(options.port, existingConfig?.localMcpUrl, await readActiveLocalMcpUrl(env));
+
+  let tunnelId = options.tunnelId?.trim() || (options.replaceTunnel ? undefined : existingConfig?.tunnelId);
+  if (tunnelId) {
+    assertTunnelId(tunnelId);
+    if (options.tunnelId?.trim()) output("✓ Tunnel ID accepted");
+    else output("✓ Existing tunnel configuration");
+  } else {
     requireInteractive(interactive, "Tunnel setup needs a tunnel ID.");
     output("");
-    for (const line of TUNNEL_ID_PROMPT_HINT) output(line);
-    output("Tunnel ID:");
-    tunnelId = (await promptVisible("> ")).trim();
+    output("1. Create your OpenAI tunnel");
+    output("");
+    if (!options.noOpen) output("Opening OpenAI Platform...");
+    await openOfficialUrl(OFFICIAL_OPENAI_URLS.tunnels, { interactive, noOpen: options.noOpen, output, openCommand: options.openUrl });
+    output("");
+    output("Create or select a Secure MCP Tunnel.");
+    output("");
+    output("When finished, return here and paste the tunnel ID.");
+    tunnelId = await promptValidTunnelId(interactive, promptVisible, output);
+    output("✓ Tunnel ID accepted");
   }
-  assertTunnelId(tunnelId);
+  output("");
 
-  await ensureRuntimeApiKeyFile(paths, {
+  const keyChanged = await ensureRuntimeApiKeyFile(paths, {
     runtimeApiKey: options.runtimeApiKey,
     interactive,
     output,
     promptHidden,
+    replace: options.replaceRuntimeKey,
+    noOpen: options.noOpen,
+    openUrl: options.openUrl,
   });
+  if (!keyChanged) output("✓ Runtime credential found");
+  output("✓ RepoRelay bridge secret");
+  output("");
 
-  await validateSecretFile(paths.bridgeSecretFile, "RepoRelay bridge secret", BRIDGE_SECRET_MIN_LENGTH, true);
   await mkdir(paths.profileDir, { recursive: true });
   const config: TunnelOperatorConfig = {
     schemaVersion: 1,
     tunnelId,
     profile: TUNNEL_PROFILE,
-    tunnelClientPath,
+    tunnelClientPath: resolvedClient.path,
+    tunnelClientSource: resolvedClient.source,
+    localMcpUrl,
   };
-  await writeManagedFile(paths.profileFile, buildTunnelProfile(paths, tunnelId), "profile");
+  await writeManagedFile(paths.profileFile, buildTunnelProfile(paths, tunnelId, localMcpUrl), "profile");
   await writeManagedFile(paths.configFile, `${JSON.stringify(config, null, 2)}\n`, "config");
-
-  output("✓ tunnel-client configured");
-  output("✓ Tunnel ID saved");
-  output("✓ Runtime API key stored securely");
-  output("✓ RepoRelay bridge secret found");
-  output("✓ tunnel-client profile configured");
-  output("Configuration saved.");
+  output("✓ Tunnel profile created");
+  output(`✓ Local MCP endpoint: ${localMcpUrl}`);
   output("");
-  output("Next:");
-  output("  reporelay tunnel doctor");
-  return { paths, config };
+
+  output("Testing connection...");
+  const doctor = await performDoctorChecks(paths, config, { tunnelClientPath: resolvedClient.path, runCommand: options.runCommand });
+  if (doctor.passed) {
+    output("✓ OpenAI runtime credential");
+    output("✓ RepoRelay reachable");
+    output("✓ Bridge authentication");
+    output("");
+    output("Setup complete.");
+    output("");
+    output("Next:");
+    output("  reporelay tunnel run");
+    return { paths, config, doctorPassed: true };
+  }
+
+  output("✗ Connection test failed");
+  output("");
+  output(describeSetupDoctorFailure(doctor.diagnostics));
+  output("");
+  output("Setup was saved, but the connection test did not pass.");
+  output("");
+  output("Troubleshoot with:");
+  output("  reporelay tunnel doctor --verbose");
+  return { paths, config, doctorPassed: false };
+}
+
+async function resolveSetupTunnelClient(options: {
+  env: NodeJS.ProcessEnv;
+  preferredPath?: string;
+  interactive: boolean;
+  output: (line: string) => void;
+  download?: (url: string) => Promise<Buffer>;
+  verify?: (buffer: Buffer, expectedSha256: string) => void;
+  extract?: (zipBuffer: Buffer, destDir: string) => Promise<string[]>;
+}): Promise<{ path: string; source: "managed" | "custom" }> {
+  if (options.preferredPath?.trim()) {
+    const explicitPath = resolve(options.preferredPath.trim());
+    if (!(await isUsableTunnelClient(explicitPath))) throw invalidTunnelClientPathError(explicitPath);
+    options.output("✓ Using custom tunnel-client (advanced override)");
+    options.output("  RepoRelay did not verify or manage this executable.");
+    return { path: explicitPath, source: "custom" };
+  }
+
+  const artifact = resolveTunnelClientArtifact(process.platform, process.arch);
+  options.output(`✓ Detected ${artifact.platformLabel}`);
+  const result = await ensureManagedTunnelClient({ env: options.env, output: options.output, download: options.download, verify: options.verify, extract: options.extract });
+  return { path: result.path, source: "managed" };
+}
+
+async function promptValidTunnelId(
+  interactive: boolean,
+  promptVisible: (prompt: string) => Promise<string>,
+  output: (line: string) => void,
+): Promise<string> {
+  requireInteractive(interactive, "Tunnel setup needs a tunnel ID.");
+  for (;;) {
+    output("Tunnel ID:");
+    const value = (await promptVisible("> ")).trim();
+    if (!value) throw new Error("Tunnel setup cancelled.");
+    try {
+      assertTunnelId(value);
+      return value;
+    } catch {
+      output("That does not look like a tunnel ID. It should look like tunnel_ followed by 32 lowercase hex characters. Try again.");
+    }
+  }
+}
+
+async function performDoctorChecks(
+  paths: TunnelPaths,
+  config: TunnelOperatorConfig,
+  options: { tunnelClientPath: string; runCommand?: TunnelClientCommandRunner },
+): Promise<{ passed: boolean; diagnostics: string; exitCode: number }> {
+  await validateTunnelState(paths, config);
+  const result = await (options.runCommand ?? runTunnelClientCommand)(options.tunnelClientPath, buildTunnelClientArgs("doctor", paths));
+  const diagnostics = [result.stdout, result.stderr].filter(Boolean).join("\n");
+  return { passed: isSuccessfulDoctorResult(result), diagnostics, exitCode: result.exitCode };
+}
+
+function describeSetupDoctorFailure(diagnostics: string): string {
+  const lower = diagnostics.toLowerCase();
+  if (/connection refused|econnrefused/.test(lower)) {
+    return notRunningMessage();
+  }
+  if (/bridge|401|unauthorized|forbidden/.test(lower)) {
+    return "Bridge authentication failed. Confirm RepoRelay is running with its canonical bridge secret, then retry.";
+  }
+  if (/mcp_server_reachable/.test(lower)) {
+    return notRunningMessage();
+  }
+  if (/api key|api_key|tunnel id|tunnel_id|control_plane/.test(lower)) {
+    return "The OpenAI runtime credential or tunnel ID was not accepted. Check them in OpenAI Platform, then retry.";
+  }
+  return "The connection could not be verified. Troubleshoot with `reporelay tunnel doctor --verbose`.";
+}
+
+function notRunningMessage(): string {
+  return [
+    "RepoRelay is not currently running.",
+    "",
+    "Start it in another terminal:",
+    "",
+    "  reporelay quickstart \"C:\\path\\to\\your-project\"",
+    "",
+    "Keep that terminal open, then retry:",
+    "",
+    "  reporelay tunnel setup",
+  ].join("\n");
 }
 
 export async function doctorTunnel(options: TunnelDoctorOptions = {}): Promise<boolean> {
@@ -242,19 +366,21 @@ export async function doctorTunnel(options: TunnelDoctorOptions = {}): Promise<b
   try {
     const paths = getTunnelPaths(env);
     const config = await readTunnelConfig(paths.configFile);
+    const localMcpUrl = config.localMcpUrl ?? DEFAULT_REPORELAY_MCP_URL;
+    await syncTunnelProfileEndpoint(paths, localMcpUrl);
     const tunnelClientPath = await resolveTunnelClientPath({
       env,
       preferredPath: options.tunnelClientPath,
       storedPath: config.tunnelClientPath,
       interactive: false,
     });
-    await validateTunnelState(paths, config);
     if (options.verbose) redactions = await readSecretValues(paths);
     output("✓ tunnel-client found");
     output("✓ tunnel-client profile configured");
-    const result = await (options.runCommand ?? runTunnelClientCommand)(tunnelClientPath, buildTunnelClientArgs("doctor", paths));
-    diagnostics = [result.stdout, result.stderr].filter(Boolean).join("\n");
-    if (isSuccessfulDoctorResult(result)) {
+    output(`✓ Local MCP endpoint: ${localMcpUrl}`);
+    const result = await performDoctorChecks(paths, config, { tunnelClientPath, runCommand: options.runCommand });
+    diagnostics = result.diagnostics;
+    if (result.passed) {
       output("✓ Tunnel configuration valid");
       output("✓ OpenAI runtime credential accepted");
       output("✓ RepoRelay reachable");
@@ -293,6 +419,8 @@ export async function runTunnel(options: TunnelRunOptions = {}): Promise<number>
   const output = options.output ?? console.log;
   const paths = getTunnelPaths(env);
   const config = await readTunnelConfig(paths.configFile);
+  const localMcpUrl = config.localMcpUrl ?? DEFAULT_REPORELAY_MCP_URL;
+  await syncTunnelProfileEndpoint(paths, localMcpUrl);
   await validateTunnelState(paths, config);
   const tunnelClientPath = await resolveTunnelClientPath({
     env,
@@ -301,6 +429,7 @@ export async function runTunnel(options: TunnelRunOptions = {}): Promise<number>
   });
   output("RepoRelay tunnel");
   output("✓ Profile loaded");
+  output(`✓ Local MCP endpoint: ${localMcpUrl}`);
   output("✓ Forwarding RepoRelay MCP through the OpenAI Secure MCP Tunnel");
   for (const line of CHATGPT_COMPLETION_CHECKLIST) output(line);
   output("Keep this window open. Press Ctrl+C to stop.");
@@ -370,23 +499,51 @@ async function ensureRuntimeApiKeyFile(
     interactive: boolean;
     output: (line: string) => void;
     promptHidden: (prompt: string) => Promise<string>;
+    replace?: boolean;
+    noOpen?: boolean;
+    openUrl?: (command: string, args: string[]) => Promise<boolean>;
   },
 ): Promise<boolean> {
-  if (await pathExists(paths.runtimeApiKeyFile)) {
+  const keyExists = await pathExists(paths.runtimeApiKeyFile);
+  if (keyExists && !options.replace) {
     await validateSecretFile(paths.runtimeApiKeyFile, "OpenAI runtime API key", 1, true);
     return false;
   }
 
   let runtimeApiKey = options.runtimeApiKey;
   if (runtimeApiKey === undefined) {
-    requireInteractive(options.interactive, "Tunnel setup needs the OpenAI runtime API key once.");
-    for (const line of RUNTIME_API_KEY_PROMPT_HINT) options.output(line);
-    options.output("Runtime API key (input hidden):");
+    requireInteractive(options.interactive, "Tunnel setup needs the OpenAI runtime API key.");
+    options.output("");
+    options.output("2. Create your OpenAI runtime API key");
+    options.output("");
+    if (!options.noOpen) options.output("Opening OpenAI Platform...");
+    await openOfficialUrl(OFFICIAL_OPENAI_URLS.apiKeys, { interactive: options.interactive, noOpen: options.noOpen, output: options.output, openCommand: options.openUrl });
+    options.output("");
+    options.output("Create a runtime API key for the OpenAI project you are using with this tunnel.");
+    options.output("");
+    options.output("This key authenticates tunnel-client to OpenAI.");
+    options.output("It is NOT the RepoRelay bridge secret.");
+    options.output("");
+    options.output("Paste the API key below.");
+    options.output("");
+    options.output("Input is hidden; nothing will appear while you paste or type.");
+    options.output("");
+    options.output("Runtime API key:");
     runtimeApiKey = await options.promptHidden("> ");
   }
   runtimeApiKey = runtimeApiKey.trim();
   if (!runtimeApiKey) throw new Error("The OpenAI runtime API key cannot be empty.");
+  if (runtimeApiKey.length < 1) throw new Error("The OpenAI runtime API key cannot be empty.");
+
   await mkdir(paths.secretDir, { recursive: true });
+  if (keyExists && options.replace) {
+    await assertRegularFile(paths.runtimeApiKeyFile, "OpenAI runtime API key");
+    await grantUserFullControl(paths.runtimeApiKeyFile);
+    await writeFile(paths.runtimeApiKeyFile, `${runtimeApiKey}\n`, { encoding: "utf8", mode: 0o600 });
+    await protectUserSecretFile(paths.runtimeApiKeyFile);
+    options.output("✓ Runtime API key replaced");
+    return true;
+  }
   try {
     await writeFile(paths.runtimeApiKeyFile, `${runtimeApiKey}\n`, { encoding: "utf8", mode: 0o600, flag: "wx" });
   } catch (error) {
@@ -395,6 +552,7 @@ async function ensureRuntimeApiKeyFile(
     return false;
   }
   await protectUserSecretFile(paths.runtimeApiKeyFile);
+  options.output("✓ Runtime API key stored securely");
   return true;
 }
 
@@ -403,49 +561,6 @@ async function validateSecretFile(path: string, label: string, minimumLength: nu
   if (protect) await protectUserSecretFile(path);
   const value = (await readFile(path, "utf8")).trim();
   if (value.length < minimumLength) throw new Error(`${label} at ${path} is empty or too short.`);
-}
-
-async function readOptionalTunnelConfig(path: string): Promise<TunnelOperatorConfig | undefined> {
-  if (!(await pathExists(path))) return undefined;
-  return await readTunnelConfig(path);
-}
-
-async function readTunnelConfig(path: string): Promise<TunnelOperatorConfig> {
-  await assertRegularFile(path, "RepoRelay tunnel configuration");
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(await readFile(path, "utf8"));
-  } catch {
-    throw new Error(`RepoRelay tunnel configuration is not valid JSON: ${path}`);
-  }
-  if (!isRecord(parsed) || parsed.schemaVersion !== 1 || parsed.profile !== TUNNEL_PROFILE || typeof parsed.tunnelId !== "string" || typeof parsed.tunnelClientPath !== "string") {
-    throw new Error(`RepoRelay tunnel configuration is invalid: ${path}`);
-  }
-  assertTunnelId(parsed.tunnelId);
-  if (!parsed.tunnelClientPath.trim()) throw new Error(`RepoRelay tunnel configuration has no tunnel-client path: ${path}`);
-  return {
-    schemaVersion: 1,
-    tunnelId: parsed.tunnelId,
-    profile: TUNNEL_PROFILE,
-    tunnelClientPath: resolve(parsed.tunnelClientPath),
-  };
-}
-
-async function writeManagedFile(path: string, content: string, kind: "config" | "profile"): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  if (!(await pathExists(path))) {
-    await writeFile(path, content, { encoding: "utf8", flag: "wx" });
-    return;
-  }
-  await assertRegularFile(path, `RepoRelay tunnel ${kind}`);
-  const current = await readFile(path, "utf8");
-  if (current === content) return;
-  if (kind === "profile") assertNoInlineSecrets(current, path);
-  let backupPath = `${path}.bak-${Date.now()}`;
-  let backupSuffix = 1;
-  while (await pathExists(backupPath)) backupPath = `${path}.bak-${Date.now()}-${backupSuffix++}`;
-  await copyFile(path, backupPath);
-  await writeFile(path, content, { encoding: "utf8" });
 }
 
 async function resolveTunnelClientPath(options: {
@@ -464,12 +579,17 @@ async function resolveTunnelClientPath(options: {
   if (options.storedPath?.trim()) {
     const storedPath = resolve(options.storedPath.trim());
     if (await isUsableTunnelClient(storedPath)) return storedPath;
+    // A RepoRelay-managed install that is missing or corrupt is repaired
+    // automatically from the pinned, verified archive.
+    if (isManagedTunnelClientPath(storedPath, options.env)) {
+      const repaired = await ensureManagedTunnelClient({ env: options.env });
+      if (await isUsableTunnelClient(repaired.path)) return repaired.path;
+    }
   }
   const pathClient = await findTunnelClientOnPath(options.env);
   if (pathClient) return pathClient;
   if (!options.interactive) throw missingTunnelClientError();
   const emit = options.output ?? (() => undefined);
-  for (const line of TUNNEL_CLIENT_PROMPT_HINT) emit(line);
   emit("tunnel-client executable path (leave blank to cancel):");
   const readPath = options.readVisibleInput ?? readVisibleInput;
   const enteredPath = (await readPath("> ")).trim();
@@ -497,43 +617,6 @@ async function isUsableTunnelClient(path: string): Promise<boolean> {
   return await isRegularFile(path);
 }
 
-async function assertRegularFile(path: string, label: string): Promise<void> {
-  let stats;
-  try {
-    stats = await lstat(path);
-  } catch (error) {
-    if (isErrorCode(error, "ENOENT") || isErrorCode(error, "ENOTDIR")) throw new Error(`${label} was not found at ${path}.`);
-    throw error;
-  }
-  if (!stats.isFile() || stats.isSymbolicLink() || stats.nlink > 1) throw new Error(`${label} must be a regular single-link file: ${path}.`);
-}
-
-async function isRegularFile(path: string): Promise<boolean> {
-  try {
-    const stats = await lstat(path);
-    return stats.isFile();
-  } catch (error) {
-    if (isErrorCode(error, "ENOENT") || isErrorCode(error, "ENOTDIR")) return false;
-    throw error;
-  }
-}
-
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await lstat(path);
-    return true;
-  } catch (error) {
-    if (isErrorCode(error, "ENOENT") || isErrorCode(error, "ENOTDIR")) return false;
-    throw error;
-  }
-}
-
-function assertTunnelId(tunnelId: string): void {
-  if (!TUNNEL_ID_PATTERN.test(tunnelId)) {
-    throw new Error("Tunnel ID must look like tunnel_ followed by 32 lowercase hexadecimal characters.");
-  }
-}
-
 function fileReference(path: string): string {
   const normalizedPath = resolve(path).replaceAll("\\", "/");
   return `file:${normalizedPath}`;
@@ -543,25 +626,32 @@ function yamlScalar(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
-function assertNoInlineSecrets(profile: string, path: string): void {
-  const hasInlineSecret = profile.split(/\r?\n/).some((line) => {
-    const match = /^\s*(?:api_key|X-RepoRelay-Bridge-Secret)\s*:\s*(.*?)\s*$/i.exec(line);
-    if (!match) return false;
-    const value = (match[1] ?? "").replace(/^(['"])(.*)\1$/, "$2").trim();
-    return value.length > 0 && !/^(?:file|env):/i.test(value);
-  });
-  if (hasInlineSecret) {
-    throw new Error(`The existing tunnel profile contains an inline secret and was not changed: ${path}.`);
-  }
+/**
+ * Migrates an existing generated profile so its main channel URL matches the
+ * recorded local endpoint. Only the URL line changes; secret references and
+ * every other line are preserved, and the previous file is backed up.
+ */
+async function syncTunnelProfileEndpoint(paths: TunnelPaths, localMcpUrl: string): Promise<void> {
+  if (!(await pathExists(paths.profileFile))) return;
+  const current = await readFile(paths.profileFile, "utf8");
+  const validated = assertLocalMcpUrl(localMcpUrl);
+  const urlLinePattern = /^(\s*url:\s*')([^']*)('\s*)$/m;
+  const match = urlLinePattern.exec(current);
+  if (!match) return;
+  if (match[2] === validated) return;
+  await writeManagedFile(paths.profileFile, current.replace(urlLinePattern, `$1${validated}$3`), "profile");
 }
 
 function nextDoctorStep(diagnostics: string): string {
   const lower = diagnostics.toLowerCase();
-  if (/connection refused|mcp_server_reachable|127\.0\.0\.1:7676/.test(lower)) {
-    return "Start RepoRelay with `reporelay quickstart <repository>` and rerun the doctor.";
+  if (/connection refused|econnrefused/.test(lower)) {
+    return "Start RepoRelay with `reporelay quickstart <repository>` (add `--port <port>` if you configured a custom port) and rerun the doctor.";
   }
   if (/bridge|401|unauthorized|forbidden/.test(lower)) {
     return "Check that RepoRelay is running with its canonical bridge secret, then rerun the doctor.";
+  }
+  if (/mcp_server_reachable/.test(lower)) {
+    return "Start RepoRelay with `reporelay quickstart <repository>` (add `--port <port>` if you configured a custom port) and rerun the doctor.";
   }
   if (/api key|api_key|tunnel id|tunnel_id|control_plane/.test(lower)) {
     return "Check the tunnel ID and the protected runtime API-key file, then rerun the doctor.";
@@ -636,12 +726,4 @@ async function readHiddenInput(prompt: string): Promise<string> {
     input.resume();
     input.on("data", onData);
   });
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isErrorCode(error: unknown, code: string): boolean {
-  return typeof error === "object" && error !== null && "code" in error && (error as { code?: unknown }).code === code;
 }

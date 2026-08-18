@@ -12,6 +12,8 @@ checkout, `node dist/cli.js` is equivalent.
 
 ## Quickstart
 
+The recommended default is the 7-tool handoff surface:
+
 ```powershell
 reporelay quickstart "C:\path\to\approved-repository"
 ```
@@ -21,9 +23,26 @@ home directory. It creates missing `.ai-handoff` targets without replacing
 existing ones, generates a 32-byte bridge secret, starts the loopback server,
 and checks missing/wrong authentication plus the exact tool surface.
 
-Default Quickstart: 7 tools. Read-only mode (`--no-handoff-writes`): 4 tools.
+The default quickstart exposes exactly 7 tools (4 inspection + 3 fixed handoff
+writers). The optional inspection-only mode exposes exactly 4 tools and leaves
+the repository unchanged:
+
+```powershell
+reporelay quickstart "C:\path\to\approved-repository" --no-handoff-writes
+```
+
+Read-only mode does not create `.ai-handoff`, does not create or modify
+`AGENTS.md`, and does not require `--append-agent-instructions`.
+
 Use `--append-agent-instructions` only when an existing `AGENTS.md` has been
-reviewed; quickstart backs it up outside the repository before appending.
+reviewed; quickstart backs it up outside the repository before appending. An
+existing `AGENTS.md` without the RepoRelay marker stops quickstart with a
+clear explanation unless you pass that flag.
+
+Quickstart records its live local endpoint so the managed tunnel configuration
+follows it. A custom port (`--port 7677`) therefore flows through
+`reporelay tunnel setup`, `reporelay tunnel doctor`, and
+`reporelay tunnel run` without manual YAML editing.
 
 After quickstart, run an independent audit. It starts its own temporary
 authenticated loopback listener and exercises the real MCP surface plus
@@ -33,6 +52,9 @@ disposable containment fixtures:
 reporelay audit "C:\path\to\approved-repository"
 reporelay audit "C:\path\to\approved-repository" --json
 ```
+
+If you used `--no-handoff-writes` for quickstart, add that flag to the audit
+command too.
 
 ## Connect a reviewer
 

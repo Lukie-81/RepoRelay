@@ -77,6 +77,10 @@ interface AuditArgs {
 interface TunnelSetupArgs {
   tunnelId?: string;
   tunnelClientPath?: string;
+  port?: number;
+  noOpen?: boolean;
+  replaceTunnel?: boolean;
+  replaceRuntimeKey?: boolean;
   interactive: boolean;
 }
 
@@ -167,7 +171,8 @@ async function runTunnelCommand(args: string[]): Promise<void> {
   }
   if (subcommand === "setup") {
     const parsed = parseTunnelSetupArgs(subcommandArgs);
-    await setupTunnel(parsed);
+    const result = await setupTunnel(parsed);
+    if (!result.doctorPassed) process.exitCode = 1;
     return;
   }
   if (subcommand === "doctor") {
@@ -197,11 +202,19 @@ function parseTunnelSetupArgs(args: string[]): TunnelSetupArgs {
       const value = args[++index];
       if (!value) throw new Error("--tunnel-client-path expects an executable path.");
       parsed.tunnelClientPath = value;
-    } else if (arg === "--non-interactive") parsed.interactive = false;
+    } else if (arg === "--port") {
+      const value = args[++index];
+      const port = Number(value);
+      if (!value || !Number.isInteger(port) || port < 1 || port > 65_535) throw new Error("--port expects a port between 1 and 65535.");
+      parsed.port = port;
+    } else if (arg === "--no-open") parsed.noOpen = true;
+    else if (arg === "--replace-tunnel") parsed.replaceTunnel = true;
+    else if (arg === "--replace-runtime-key") parsed.replaceRuntimeKey = true;
+    else if (arg === "--non-interactive") parsed.interactive = false;
     else if (arg === "--runtime-api-key" || arg === "--api-key" || arg === "--control-plane.api-key" || /^(?:--runtime-api-key|--api-key|--control-plane\.api-key)=/.test(arg ?? "")) {
       throw new Error("Do not pass runtime API keys on the command line. `reporelay tunnel setup` prompts without echo and stores the key in a protected file.");
     } else if (arg?.startsWith("-")) throw new Error(`Unknown tunnel setup option: ${arg}`);
-    else throw new Error("Usage: reporelay tunnel setup [--tunnel-id <id>] [--tunnel-client-path <path>] [--non-interactive]");
+    else throw new Error("Usage: reporelay tunnel setup [--tunnel-id <id>] [--tunnel-client-path <path>] [--port <port>] [--non-interactive]");
   }
   return parsed;
 }
@@ -257,10 +270,11 @@ function printQuickstartSummary(summary: QuickstartSummary): void {
   console.log(`Local MCP: ${summary.localMcpUrl}`);
   console.log(`Health check: ${new URL("/healthz", summary.localMcpUrl).toString()}`);
   console.log(`Bridge secret file: ${summary.bridgeSecretFile}`);
+  console.log(`Managed tunnel endpoint: ${summary.localMcpUrl} (tunnel setup/doctor/run follow this port)`);
   if (handoffChanges) console.log(`Handoff files: ${handoffChanges}`);
   if (summary.handoffInit.agentsBackupPath) console.log(`AGENTS.md backup: ${summary.handoffInit.agentsBackupPath}`);
   console.log("Next: connect ChatGPT Web through an OpenAI Secure MCP Tunnel.");
-  console.log("Guide: https://github.com/Lukie-81/RepoRelay#connect-chatgpt-web");
+  console.log("Guide: https://github.com/Lukie-81/RepoRelay#quick-setup");
   console.log("Press Ctrl+C to stop.");
 }
 
@@ -333,10 +347,10 @@ function printHelp(): void {
     "",
     "Quickstart options:",
     "  [repository-root]        Approved repository (defaults to the current directory)",
-    "  --port <port>            Loopback port (default: 7676)",
+    "  --port <port>            Loopback port (default: 7676); the managed tunnel follows this port",
     "  --secret-file <path>     Bridge secret file",
     "  --append-agent-instructions",
-    "  --no-handoff-writes      Expose only the four read-only tools",
+    "  --no-handoff-writes      Optional inspection-only mode: expose the four read-only tools only",
     "",
     "Audit options:",
     "  --json                   Emit stable machine-readable audit results",
@@ -345,7 +359,11 @@ function printHelp(): void {
     "",
     "Tunnel setup:",
     "  --tunnel-id <id>        OpenAI tunnel ID (optional when prompted)",
-    "  --tunnel-client-path    Use a downloaded tunnel-client executable",
+    "  --tunnel-client-path    Advanced override: use a custom tunnel-client executable",
+    "  --port <port>           Local MCP endpoint port (default: 7676)",
+    "  --no-open               Do not open the OpenAI Platform pages in a browser",
+    "  --replace-tunnel        Prompt for a new tunnel ID",
+    "  --replace-runtime-key   Prompt for a new runtime API key",
     "  --non-interactive       Reuse existing protected credentials only",
     "",
     "Tunnel doctor:",

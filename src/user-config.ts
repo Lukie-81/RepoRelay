@@ -66,3 +66,32 @@ export async function protectUserSecretFile(secretFile: string): Promise<void> {
     "*S-1-5-18:R",
   ], { encoding: "utf8", windowsHide: true });
 }
+
+/**
+ * Temporarily grants the current user full control over a protected secret file
+ * so it can be rotated. The file owner retains WRITE_DAC on Windows even after
+ * read-only ACL protection, so this always succeeds for files RepoRelay owns.
+ * Callers must re-apply protectUserSecretFile afterwards.
+ */
+export async function grantUserFullControl(secretFile: string): Promise<void> {
+  if (process.platform !== "win32") {
+    await chmod(secretFile, 0o600);
+    return;
+  }
+
+  const { stdout } = await execFileAsync("whoami.exe", [], { encoding: "utf8", windowsHide: true });
+  const identity = stdout.trim();
+  if (!identity || /[\r\n]/.test(identity)) throw new Error("Could not resolve the current Windows identity for secret-file rotation.");
+
+  await execFileAsync("icacls.exe", [
+    secretFile,
+    "/inheritance:r",
+    "/remove:g",
+    "*S-1-1-0",
+    "*S-1-5-11",
+    "*S-1-5-32-545",
+    "/grant:r",
+    `${identity}:F`,
+    "*S-1-5-18:F",
+  ], { encoding: "utf8", windowsHide: true });
+}

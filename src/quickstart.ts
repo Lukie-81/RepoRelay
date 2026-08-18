@@ -13,7 +13,8 @@ import {
   verifyBridgeRuntime,
 } from "./security-verification.js";
 import { shutdownHttpServer } from "./server-shutdown.js";
-import { defaultBridgeSecretFile, protectUserSecretFile, reporelayConfigDir } from "./user-config.js";
+import { updateTunnelConfigLocalMcpUrl, writeActiveLocalMcpUrl } from "./tunnel-config.js";
+import { defaultBridgeSecretFile, defaultTunnelConfigFile, protectUserSecretFile, reporelayConfigDir } from "./user-config.js";
 
 const BRIDGE_SECRET_MIN_LENGTH = 32;
 const AGENTS_MARKER = "<!-- reporelay-handoff-v1 -->";
@@ -27,7 +28,7 @@ const AGENTS_SECTION = [
   "- Preserve existing instructions and unrelated work. Keep `.ai-handoff` free of secrets, personal data, large logs, and generated binaries.",
 ].join("\r\n");
 
-export type AgentsFileAction = "create" | "preserve-existing-marker" | "backup-and-append";
+export type AgentsFileAction = "create" | "preserve-existing-marker" | "backup-and-append" | "none";
 
 export interface HandoffInitResult {
   created: string[];
@@ -144,7 +145,13 @@ export async function initializeHandoffFiles(repositoryRoot: string, options: { 
   const current = await readFile(agentsPath, "utf8");
   if (current.includes(AGENTS_MARKER)) return { created, preserved, agentsAction: "preserve-existing-marker" };
   if (!options.appendAgentInstructions) {
-    throw new Error("AGENTS.md already exists. Re-run with --append-agent-instructions to back it up outside the repository and append the marked handoff section.");
+    throw new Error(
+      "This repository already contains AGENTS.md.\n\n"
+      + "RepoRelay will not modify existing agent instructions without permission.\n\n"
+      + "Review the file first. If you want RepoRelay to preserve it and append\n"
+      + "the marked handoff instructions, rerun:\n\n"
+      + "reporelay quickstart \"...\" --append-agent-instructions",
+    );
   }
 
   const backupDirectory = await mkdtemp(join(tmpdir(), "reporelay-agents-backup-"));
@@ -200,10 +207,29 @@ async function assertQuickstartPortAvailable(port: number): Promise<void> {
   await new Promise<void>((resolveCheck, rejectCheck) => {
     const socket = createConnection({ port, host: "127.0.0.1" });
     const settleFree = () => { socket.destroy(); resolveCheck(); };
-    socket.once("connect", () => { socket.destroy(); rejectCheck(new Error(`Port ${port} is already in use. Stop the other listener or rerun quickstart with --port.`)); });
+    socket.once("connect", () => {
+      socket.destroy();
+      rejectCheck(new Error(
+        `Port ${port} is already in use. Stop the other listener, or rerun quickstart with --port <port> and the managed tunnel will follow the new port.\n`
+        + `RepoRelay has no \`quickstart --stop\` command; stop the running RepoRelay with Ctrl+C in its window.\n`
+        + `On Windows, find the listener with: Get-NetTCPConnection -LocalPort ${port} -State Listen | Select-Object LocalAddress, LocalPort, OwningProcess`,
+      ));
+    });
     socket.once("error", settleFree);
     socket.setTimeout(1_000, settleFree);
   });
+}
+
+/**
+ * Records the live loopback endpoint so the managed tunnel configuration
+ * follows the actual RepoRelay port, including when quickstart used --port.
+ * The endpoint file is written unconditionally; an existing tunnel config is
+ * updated in place without touching its other fields.
+ */
+async function persistQuickstartLocalEndpoint(env: NodeJS.ProcessEnv, port: number): Promise<void> {
+  const localMcpUrl = `http://127.0.0.1:${port}/mcp`;
+  await writeActiveLocalMcpUrl(env, localMcpUrl);
+  await updateTunnelConfigLocalMcpUrl(defaultTunnelConfigFile(env), localMcpUrl);
 }
 
 export async function startQuickstart(options: QuickstartOptions): Promise<QuickstartRuntime> {
@@ -214,7 +240,10 @@ export async function startQuickstart(options: QuickstartOptions): Promise<Quick
   const bridgeSecret = await ensureQuickstartBridgeSecret(secretFile);
   const config = loadConfig(buildQuickstartEnv({ repositoryRoot: resolve(options.repositoryRoot), port, bridgeSecret, handoffWrites, env }));
   await assertQuickstartPortAvailable(port);
-  const handoffInit = await initializeHandoffFiles(config.bridgeWorkspaceRoot, { appendAgentInstructions: options.appendAgentInstructions });
+  const handoffInit = handoffWrites
+    ? await initializeHandoffFiles(config.bridgeWorkspaceRoot, { appendAgentInstructions: options.appendAgentInstructions })
+    : { created: [], preserved: [], agentsAction: "none" as const };
+  await persistQuickstartLocalEndpoint(env, config.port);
   const running = createServer(config);
   const httpServer = await new Promise<Server>((resolveListen, rejectListen) => {
     const server = running.app.listen(config.port, config.host, () => resolveListen(server));

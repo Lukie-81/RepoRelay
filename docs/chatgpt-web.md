@@ -10,7 +10,7 @@ ChatGPT Web -> Secure MCP Tunnel -> tunnel-client -> RepoRelay -> repository
 
 OpenAI owns the tunnel service, runtime-key permissions, and ChatGPT app UI.
 Use the current [Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
-and [ChatGPT Developer Mode and MCP apps guide](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt)
+and [ChatGPT Developer Mode and MCP apps guide](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt)
 when Platform or ChatGPT labels change.
 
 ## Before you start
@@ -19,34 +19,27 @@ You need:
 
 - RepoRelay installed and a repository selected;
 - an OpenAI Secure MCP Tunnel and its `tunnel_id`;
-- an OpenAI runtime API key for `tunnel-client`;
-- the official `tunnel-client` executable downloaded locally; and
+- an OpenAI runtime API key for `tunnel-client`; and
 - permission to create or use a custom MCP app in the target ChatGPT workspace.
 
-RepoRelay does not use the runtime API key for local MCP work. RepoRelay also
-does not download or install `tunnel-client`. It is OpenAI's separate local
-transport binary: it carries the Secure MCP Tunnel traffic to the RepoRelay
-bridge, while RepoRelay remains the local MCP server and security boundary.
-Download the current official release from
-https://github.com/openai/tunnel-client/releases/latest, choose the build for
-your operating system, and extract it before setup.
+You do **not** need to download or locate `tunnel-client` yourself. `reporelay
+tunnel setup` downloads a RepoRelay-supported, SHA-256-verified `tunnel-client`
+into RepoRelay's per-user configuration directory and uses it for doctor and
+run automatically. RepoRelay does not use the runtime API key for local MCP
+work; that key only authenticates `tunnel-client` to OpenAI. RepoRelay remains
+the local MCP server and security boundary.
 
 ## 1. Start RepoRelay
 
-Use the default quickstart port so setup can configure the local MCP URL without
-extra values:
+The default quickstart port is 7676:
 
 ```powershell
 reporelay quickstart "C:/Projects/my-app"
 ```
 
-Keep this terminal open. A read-only bridge uses:
-
-```powershell
-reporelay quickstart "C:/Projects/my-app" --no-handoff-writes
-```
-
-The default quickstart has seven tools. Read-only mode has exactly four:
+Keep this terminal open. The normal quickstart has **seven tools**. If you
+chose the optional inspection-only mode instead, add `--no-handoff-writes`;
+that mode has exactly four tools:
 
 ```text
 open_workspace
@@ -55,9 +48,33 @@ read_file
 search_files
 ```
 
-## 2. Run one-time tunnel setup
+If you run RepoRelay on a custom port (`--port 7677`), the managed tunnel
+configuration follows it automatically &mdash; quickstart records the live local
+endpoint, and `tunnel setup`/`doctor`/`run` all use it.
 
-First create the runtime API key in OpenAI Platform:
+## 2. Create the OpenAI Secure MCP Tunnel
+
+You need a tunnel and its `tunnel_id` before setup:
+
+1. Open Platform → settings → Secure MCP Tunnels:
+   https://platform.openai.com/settings/organization/tunnels
+2. **Create a new tunnel**, or select an existing one.
+3. **Associate the tunnel** with the ChatGPT workspace (and Platform
+   organization) that should be able to use it. A tunnel associated only with
+   a Platform organization will not appear in a ChatGPT workspace.
+4. Copy the **`tunnel_id`** (it looks like `tunnel_` followed by 32 hex
+   characters).
+
+Creating or editing a tunnel needs **Tunnels Read + Manage**; running
+`tunnel-client` or selecting the tunnel needs **Tunnels Read + Use**. These
+are organization-level permissions granted by your org owner or RBAC admin.
+Use the current
+[Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+as the source of truth for the exact UI and permission wording.
+
+## 3. Run one-time tunnel setup
+
+Create a runtime API key in OpenAI Platform:
 
 1. Open https://platform.openai.com/settings/organization/api-keys.
 2. Click **Create new secret key**.
@@ -65,42 +82,53 @@ First create the runtime API key in OpenAI Platform:
 4. Create the key and copy it when OpenAI shows it. You provide it to setup
    below; RepoRelay stores it in a protected file.
 
-Separately, your OpenAI Platform account needs the **Tunnels Read + Use**
-organization permission to run or select the tunnel. That is an
-organization-level permission your org owner or RBAC admin grants, not a
-setting on the API key itself. Creating or editing a tunnel needs **Tunnels
-Read + Manage**; **Tunnels Read + Use** is enough to run `tunnel-client` and
-select the tunnel. Do not use an Admin API key, and never paste any key into
-ChatGPT.
+Do not use an Admin API key, and never paste any key into ChatGPT.
 
-Put the extracted `tunnel-client` executable on PATH, or keep its full path
-ready. RepoRelay does not download it for you. In a second PowerShell window,
-run:
+In a second PowerShell window, run:
 
 ```powershell
 reporelay tunnel setup
 ```
 
-On a cold start, setup first explains the OpenAI `tunnel-client` step and asks
-for its path only when it is not already on PATH or stored in valid RepoRelay
-configuration. Then it prompts for the tunnel ID and the runtime API key. The
-key prompt does not echo input. The key is never accepted as an argument,
-environment value, generated config value, or user-facing bridge-header
-variable.
+Setup automatically detects your OS and CPU, downloads the pinned
+RepoRelay-supported `tunnel-client` release, verifies its SHA-256 checksum
+before running anything, and stores it under `%LOCALAPPDATA%\RepoRelay`. On a
+repeat run it reuses the already-verified installation instead of
+redownloading.
+
+If your RepoRelay runs on a custom port, either rely on the automatically
+discovered live endpoint or set it explicitly:
+
+```powershell
+reporelay tunnel setup --port 7677
+```
+
+Setup first prepares the verified `tunnel-client`, then opens the OpenAI
+Platform tunnel page so you can create or select a tunnel, and prompts for the
+tunnel ID. Next it opens the runtime API-key page and prompts for the key. The
+key prompt does not echo input — nothing appears while you paste. The key is
+never accepted as an argument, environment value, generated config value, or
+user-facing bridge-header variable. Add `--no-open` on headless or SSH systems
+so RepoRelay prints the page URLs instead of launching a browser.
 
 Setup preserves an existing bridge secret and runtime-key file. It writes this
 per-user layout under `%LOCALAPPDATA%\RepoRelay`:
 
 ```text
 reporelay-bridge-secret.txt
+tunnel\bin\v0.0.11\tunnel-client.exe   (verified, RepoRelay-managed)
 tunnel\config.json
+tunnel\local-mcp-url.txt
 tunnel\profiles\reporelay.yaml
 tunnel\secrets\openai-runtime-api-key.txt
 ```
 
-`config.json` contains only the schema version, tunnel ID, profile name, and the
-resolved tunnel-client path selected during setup. The generated profile uses
-the official named-profile schema and file references for both credentials:
+`config.json` contains the schema version, tunnel ID, profile name, the
+resolved tunnel-client path, and the local MCP endpoint (`localMcpUrl`).
+Quickstart keeps that endpoint in sync with the actual running RepoRelay port,
+so a custom `--port` flows through `tunnel setup`, `tunnel doctor`, and
+`tunnel run` without manual YAML editing. The generated profile uses the
+official named-profile schema and file references for both credentials:
 
 ```yaml
 config_version: 1
@@ -120,7 +148,7 @@ mcp:
 Do not replace the `file:` references with literal secrets. Do not copy the
 runtime key or bridge secret into ChatGPT, Git, logs, or handoff files.
 
-## 3. Check the configuration and connection
+## 4. Check the configuration and connection
 
 Run:
 
@@ -140,6 +168,7 @@ A successful check ends with:
 RepoRelay tunnel doctor
 [ok] tunnel-client found
 [ok] tunnel-client profile configured
+[ok] Local MCP endpoint: http://127.0.0.1:7676/mcp
 [ok] Tunnel configuration valid
 [ok] OpenAI runtime credential accepted
 [ok] RepoRelay reachable
@@ -154,13 +183,13 @@ redacted diagnostics, then correct the indicated layer:
 
 | Failure | Check |
 | --- | --- |
-| `tunnel-client` missing | Download the official client, put it on PATH or rerun setup with its executable path. |
+| `tunnel-client` missing | Rerun `reporelay tunnel setup`; it re-downloads and verifies the managed client. |
 | Profile or credential file missing | Rerun `reporelay tunnel setup`; it preserves existing credentials. |
 | Runtime credential rejected | Confirm the Platform runtime API key and tunnel ID; do not use an admin key for the daemon. |
-| MCP unreachable | Keep the RepoRelay quickstart terminal running on `127.0.0.1:7676`. |
+| MCP unreachable | Keep the RepoRelay quickstart terminal running on the configured local endpoint (default `127.0.0.1:7676`), then rerun the doctor. |
 | Bridge authentication failed | Confirm the canonical RepoRelay bridge-secret file is present and rerun setup. |
 
-## 4. Run the tunnel
+## 5. Run the tunnel
 
 After doctor passes, start the foreground client:
 
@@ -172,22 +201,35 @@ The wrapper runs the configured `reporelay` profile and leaves `tunnel-client`
 in the foreground. Keep both the RepoRelay and tunnel terminals open. Stop the
 tunnel with Ctrl+C.
 
-## 5. Create or use the ChatGPT app
+## 6. Create or use the ChatGPT app
 
-In ChatGPT Web, use the current OpenAI app flow:
+In ChatGPT, use the current OpenAI app flow (see the
+[developer-mode and MCP apps guide](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt)):
 
-1. Open **Apps** and choose **Create**, if your workspace exposes that action.
-2. Enable Developer Mode or ask the workspace administrator for access.
-3. Create a custom MCP app and choose the tunnel connection.
-4. Select the tunnel associated with the target ChatGPT workspace.
-5. Do not enter `127.0.0.1`, `localhost`, or either credential.
-6. Run **Scan Tools**, review the returned tools, and create the app.
-7. In a new chat, select the RepoRelay app.
+```text
+ChatGPT
+→ Apps / developer features
+→ create custom MCP app
+→ connection: Tunnel
+→ choose RepoRelay's tunnel
+→ Scan Tools
+→ verify 7 tools
+→ create/use the app
+→ start a new chat
+```
 
-Expected tools are the four read-only tools above, plus the three fixed handoff
-writers when quickstart handoff writes are enabled. Stop if Scan Tools shows
-shell, Git, process execution, arbitrary file editing, delete, or another
-unexpected capability.
+1. Enable Developer Mode, or ask the workspace administrator for access.
+2. Create a custom MCP app and choose the **Tunnel** connection.
+3. Select the tunnel associated with the target ChatGPT workspace.
+4. Do not enter `127.0.0.1`, `localhost`, or either credential.
+5. Run **Scan Tools**, review the returned tools, and create the app.
+6. In a new chat, select the RepoRelay app.
+
+The normal quickstart exposes exactly seven tools (the four read-only tools
+above, plus `write_next_task`, `write_review`, and `update_handoff_state`).
+Read-only mode exposes exactly four. Stop if Scan Tools shows shell, Git,
+process execution, arbitrary file editing, delete, or another unexpected
+capability.
 
 ## Security notes
 
@@ -196,20 +238,22 @@ unexpected capability.
 - The bridge secret stays in the protected per-user RepoRelay configuration
   directory. The tunnel profile reads it through a `file:` reference.
 - The runtime API key stays in its protected file and is not put on argv.
-- Setup and run do not download software, publish a tunnel, create a ChatGPT
-  app, or change external permissions.
+- Setup downloads only the pinned, SHA-256-verified `tunnel-client` from the
+  official OpenAI release and never executes an unverified binary. It does not
+  publish a tunnel, create a ChatGPT app, or change external permissions.
 - The bridge exposes only its approved review tools; the tunnel is a transport
   layer, not a shell or arbitrary mutation channel.
 
 ## Existing Windows operations
 
 The managed Windows scripts in [OPERATIONS.md](../OPERATIONS.md) remain available
-for operators who already maintain a separate tunnel-client installation. They
-are not required for the CLI setup path.
+for operators who already maintain a separate `tunnel-client` installation.
+They are not required for the CLI setup path, which manages its own verified
+client.
 
 ## Official references
 
 - [OpenAI Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
 - [tunnel-client configuration reference](https://github.com/openai/tunnel-client/blob/master/docs/configuration.md)
 - [official tunnel-client releases](https://github.com/openai/tunnel-client/releases/latest)
-- [ChatGPT Developer Mode and MCP apps](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt)
+- [ChatGPT Developer Mode and MCP apps](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt)
