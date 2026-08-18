@@ -26,7 +26,7 @@ without giving it control of the rest of your computer.</p>
 <p align="center"><b>Read safe files &middot; Search code &middot; One approved repository &middot; No shell &middot; No Git &middot; No arbitrary writes</b></p>
 
 <p align="center">
-  <a href="docs/assets/reporelay-demo.mp4">
+  <a href="https://github.com/Lukie-81/RepoRelay/raw/refs/heads/main/docs/assets/reporelay-demo.mp4">
     <img
       src="docs/assets/reporelay-demo.gif"
       width="760"
@@ -36,7 +36,7 @@ without giving it control of the rest of your computer.</p>
 </p>
 
 <p align="center">
-  <a href="docs/assets/reporelay-demo.mp4"><b>Watch the full demo &rarr;</b></a>
+  <a href="https://github.com/Lukie-81/RepoRelay/raw/refs/heads/main/docs/assets/reporelay-demo.mp4"><b>Watch the full demo &rarr;</b></a>
 </p>
 
 <p align="center">
