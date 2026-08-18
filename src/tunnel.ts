@@ -22,20 +22,47 @@ const BRIDGE_SECRET_MIN_LENGTH = 32;
 const GENERATED_PROFILE_MARKER = "# RepoRelay-managed tunnel-client profile.";
 const TUNNEL_CLIENT_DOWNLOAD_URL = "https://github.com/openai/tunnel-client/releases/latest";
 
+export const TUNNEL_CLIENT_PROMPT_HINT: readonly string[] = [
+  "1. OpenAI tunnel-client",
+  "",
+  "   RepoRelay needs OpenAI's official tunnel-client to connect",
+  "   this computer to the OpenAI Secure MCP Tunnel.",
+  "",
+  "   Download the latest official release:",
+  `   ${TUNNEL_CLIENT_DOWNLOAD_URL}`,
+  "",
+  "   Download the build for your operating system, extract it,",
+  "   then enter the full path to the tunnel-client executable.",
+  "",
+  "   Windows example:",
+  "   C:\\Users\\you\\Downloads\\tunnel-client\\tunnel-client.exe",
+  "",
+  "   On macOS/Linux, enter the path to the extracted tunnel-client file.",
+  "",
+];
+
 export const TUNNEL_ID_PROMPT_HINT: readonly string[] = [
-  "1. Tunnel ID",
+  "2. Tunnel ID",
   "   Get it from OpenAI Platform → Secure MCP Tunnels:",
   "   https://platform.openai.com/settings/organization/tunnels",
   "",
 ];
 
 export const RUNTIME_API_KEY_PROMPT_HINT: readonly string[] = [
-  "2. Runtime API key",
-  "   Create one in OpenAI Platform → API keys:",
+  "3. Runtime API key",
+  "",
+  "   Open:",
   "   https://platform.openai.com/settings/organization/api-keys",
   "",
-  "   Choose your project and create a new secret key.",
-  "   Your account needs Tunnels Read + Use permission.",
+  "   1. Click Create new secret key.",
+  "   2. Choose the project you want to use with RepoRelay.",
+  "   3. Create the key and copy it when OpenAI shows it.",
+  "",
+  "   Separately, your OpenAI Platform account needs:",
+  "   Tunnels Read + Use",
+  "",
+  "   Tunnel permissions are organization permissions, not settings",
+  "   on the API key itself.",
   "",
 ];
 
@@ -152,19 +179,20 @@ export async function setupTunnel(options: TunnelSetupOptions = {}): Promise<Tun
   const output = options.output ?? console.log;
   const interactive = options.interactive ?? Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const paths = getTunnelPaths(env);
+  output("RepoRelay — ChatGPT Web setup");
   const existingConfig = await readOptionalTunnelConfig(paths.configFile);
+  const promptVisible = options.readVisibleInput ?? readVisibleInput;
+  const promptHidden = options.readHiddenInput ?? readHiddenInput;
 
   const tunnelClientPath = await resolveTunnelClientPath({
     env,
     preferredPath: options.tunnelClientPath,
     storedPath: existingConfig?.tunnelClientPath,
     interactive,
+    output,
+    readVisibleInput: promptVisible,
   });
 
-  const promptVisible = options.readVisibleInput ?? readVisibleInput;
-  const promptHidden = options.readHiddenInput ?? readHiddenInput;
-
-  output("RepoRelay — ChatGPT Web setup");
   let tunnelId = options.tunnelId?.trim() || existingConfig?.tunnelId;
   if (!tunnelId) {
     requireInteractive(interactive, "Tunnel setup needs a tunnel ID.");
@@ -193,6 +221,7 @@ export async function setupTunnel(options: TunnelSetupOptions = {}): Promise<Tun
   await writeManagedFile(paths.profileFile, buildTunnelProfile(paths, tunnelId), "profile");
   await writeManagedFile(paths.configFile, `${JSON.stringify(config, null, 2)}\n`, "config");
 
+  output("✓ tunnel-client configured");
   output("✓ Tunnel ID saved");
   output("✓ Runtime API key stored securely");
   output("✓ RepoRelay bridge secret found");
@@ -424,10 +453,12 @@ async function resolveTunnelClientPath(options: {
   preferredPath?: string;
   storedPath?: string;
   interactive: boolean;
+  output?: (line: string) => void;
+  readVisibleInput?: (prompt: string) => Promise<string>;
 }): Promise<string> {
   if (options.preferredPath?.trim()) {
     const explicitPath = resolve(options.preferredPath.trim());
-    if (!(await isUsableTunnelClient(explicitPath))) throw new Error(`The tunnel-client executable was not found at ${explicitPath}.`);
+    if (!(await isUsableTunnelClient(explicitPath))) throw invalidTunnelClientPathError(explicitPath);
     return explicitPath;
   }
   if (options.storedPath?.trim()) {
@@ -437,11 +468,14 @@ async function resolveTunnelClientPath(options: {
   const pathClient = await findTunnelClientOnPath(options.env);
   if (pathClient) return pathClient;
   if (!options.interactive) throw missingTunnelClientError();
-  requireInteractive(true, "Tunnel setup needs tunnel-client.");
-  const enteredPath = (await readVisibleInput("tunnel-client executable path (leave blank to cancel): ")).trim();
-  if (!enteredPath) throw missingTunnelClientError();
+  const emit = options.output ?? (() => undefined);
+  for (const line of TUNNEL_CLIENT_PROMPT_HINT) emit(line);
+  emit("tunnel-client executable path (leave blank to cancel):");
+  const readPath = options.readVisibleInput ?? readVisibleInput;
+  const enteredPath = (await readPath("> ")).trim();
+  if (!enteredPath) throw new Error("Tunnel setup cancelled.");
   const explicitPath = resolve(enteredPath);
-  if (!(await isUsableTunnelClient(explicitPath))) throw new Error(`The tunnel-client executable was not found at ${explicitPath}.`);
+  if (!(await isUsableTunnelClient(explicitPath))) throw invalidTunnelClientPathError(explicitPath);
   return explicitPath;
 }
 
@@ -547,7 +581,11 @@ function printDiagnostics(output: (line: string) => void, diagnostics: string, r
 }
 
 function missingTunnelClientError(): Error {
-  return new Error(`tunnel-client was not found. Download the official client from ${TUNNEL_CLIENT_DOWNLOAD_URL}, install it or place it on PATH, then rerun reporelay tunnel setup.`);
+  return new Error(`tunnel-client was not found. Download the official client from ${TUNNEL_CLIENT_DOWNLOAD_URL}, extract it, place it on PATH, or rerun reporelay tunnel setup with its full path.`);
+}
+
+function invalidTunnelClientPathError(path: string): Error {
+  return new Error(`The tunnel-client executable was not found at ${path}. Enter the full path to a regular tunnel-client file and rerun reporelay tunnel setup.`);
 }
 
 function requireInteractive(interactive: boolean, message: string): void {

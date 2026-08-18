@@ -76,76 +76,46 @@ You need:
   download it; and
 - access to create a custom MCP app in the target ChatGPT workspace.
 
-#### 1. Create the tunnel
+#### First-run sequence
 
-In OpenAI Platform, create or select a tunnel and associate it with the
-ChatGPT workspace that will use it. Keep the resulting `tunnel_id`. The
-runtime API key is created separately in the Platform runtime-key settings.
+Start RepoRelay first with `reporelay quickstart`, then complete this sequence:
 
-#### 2. Run RepoRelay setup
+1. Create or select the OpenAI Secure MCP Tunnel and keep its `tunnel_id`.
+2. Create an OpenAI runtime API key for the tunnel:
 
-Install the official tunnel client and put it on PATH, or keep its executable
-path ready. In a second PowerShell window, run:
+   - Open https://platform.openai.com/settings/organization/api-keys.
+   - Click **Create new secret key**, choose the project you want to use with
+     RepoRelay, and create the key. Copy it when OpenAI shows it, then provide
+     it when `reporelay tunnel setup` prompts you. It is stored in a protected
+     file; never paste it into ChatGPT.
 
-```powershell
-reporelay tunnel setup
-```
+   Separately, your OpenAI Platform account needs the **Tunnels Read + Use**
+   organization permission to run the tunnel. That is an organization-level
+   permission your org owner or RBAC admin grants, not a setting on the API
+   key itself. Creating or editing a tunnel needs **Tunnels Read + Manage**.
+   Do not use an Admin API key.
+3. Download the official [`tunnel-client` release](https://github.com/openai/tunnel-client/releases/latest),
+   extract the build for your operating system, and keep the executable on PATH
+   or its full path ready. RepoRelay does not download it.
+4. In a second terminal, run:
 
-RepoRelay prompts for the tunnel ID and then prompts for the runtime API key
-with input hidden. It finds `tunnel-client` on PATH or asks for its executable
-path. The key is never accepted as a command-line argument.
+   ```powershell
+   reporelay tunnel setup
+   ```
 
-Setup preserves the existing bridge secret and runtime-key file, then writes the
-client profile using file references:
+   The CLI guides you through the tunnel-client path, tunnel ID, and hidden
+   runtime-key prompts. It never accepts the runtime key as an argument.
+5. Run `reporelay tunnel doctor` and wait for `Ready.`
+6. Run `reporelay tunnel run`; keep this terminal and the RepoRelay quickstart
+   terminal open.
+7. Finish the app setup in ChatGPT: create or select the custom MCP app, choose
+   the tunnel, and run **Scan Tools**. A default quickstart should expose seven
+   tools; `--no-handoff-writes` should expose exactly the four read-only tools.
 
-```text
-%LOCALAPPDATA%\RepoRelay\
-  reporelay-bridge-secret.txt
-  tunnel\
-    config.json
-    profiles\reporelay.yaml
-    secrets\openai-runtime-api-key.txt
-```
-
-The generated profile targets RepoRelay's default local MCP URL and sends the
-bridge header from the protected bridge-secret file. Do not copy either
-credential into ChatGPT, source control, or a profile as literal text.
-
-#### 3. Check the connection
-
-```powershell
-reporelay tunnel doctor
-```
-
-Wait for `Ready.` The doctor checks the named `reporelay` profile, runtime
-credential, local reachability, and bridge authentication. Add
-`--verbose` only when you need redacted diagnostics.
-
-#### 4. Run the tunnel
-
-```powershell
-reporelay tunnel run
-```
-
-Keep this window open while ChatGPT uses RepoRelay. RepoRelay's quickstart
-window must remain open as well. `tunnel-client` stays in the foreground.
-
-#### 5. Add the app in ChatGPT
-
-Follow the current [ChatGPT Developer Mode and MCP apps guide](https://help.openai.com/en/articles/12584461-developer-mode-and-full-mcp-connectors-in-chatgpt).
-Create a custom MCP app, choose the tunnel connection, select the tunnel, and
-run **Scan Tools**. A default quickstart should expose seven tools; with
-`--no-handoff-writes`, it should expose exactly four:
-
-```text
-open_workspace
-list_files
-read_file
-search_files
-```
-
-Stop if the scan shows shell, Git, process execution, arbitrary file editing,
-or any unexpected capability.
+Setup preserves existing credentials and writes protected file references for
+the runtime key and bridge secret. Never paste either credential into ChatGPT,
+source control, or a profile as literal text. Stop if Scan Tools shows shell,
+Git, process execution, arbitrary file editing, or any unexpected capability.
 
 ### Connection troubleshooting
 

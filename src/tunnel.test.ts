@@ -36,6 +36,7 @@ assert.equal(setup.config.tunnelId, tunnelId);
 assert.equal(setup.config.tunnelClientPath, process.execPath);
 assert.ok(setupOutput.includes("✓ Runtime API key stored securely"));
 assert.ok(setupOutput.includes("✓ RepoRelay bridge secret found"));
+assert.ok(setupOutput.includes("✓ tunnel-client configured"));
 assert.equal((await readFile(paths.runtimeApiKeyFile, "utf8")).trim(), runtimePlaceholder);
 
 const configText = await readFile(paths.configFile, "utf8");
@@ -64,16 +65,33 @@ assert.deepEqual(buildTunnelClientArgs("run", paths), [
   paths.profileDir,
 ]);
 assert.equal(buildTunnelProfile(paths, tunnelId).includes(runtimePlaceholder), false);
+assert.equal(buildTunnelClientArgs("doctor", paths).includes(runtimePlaceholder), false);
+assert.equal(buildTunnelClientArgs("run", paths).includes(runtimePlaceholder), false);
 
 await setupTunnel({
   env,
   tunnelId,
-  tunnelClientPath: process.execPath,
   runtimeApiKey: "a-different-placeholder-that-must-not-replace-the-first",
   interactive: false,
   output: () => undefined,
 });
 assert.equal((await readFile(paths.runtimeApiKeyFile, "utf8")).trim(), runtimePlaceholder);
+
+// A valid stored tunnel-client path is reused without prompting again.
+const storedPathOutput: string[] = [];
+const storedPathSetup = await setupTunnel({
+  env: { ...env, PATH: join(fixtureRoot, "no-tunnel-client-on-path") },
+  interactive: true,
+  output: (line) => storedPathOutput.push(line),
+  readVisibleInput: async () => {
+    throw new Error("unexpected visible prompt while reusing stored tunnel-client");
+  },
+  readHiddenInput: async () => {
+    throw new Error("unexpected hidden prompt while reusing stored credentials");
+  },
+});
+assert.equal(storedPathSetup.config.tunnelClientPath, process.execPath);
+assert.equal(storedPathOutput.some((line) => line.includes("tunnel-client executable path")), false);
 
 const doctorOutput: string[] = [];
 const doctorPassed = await doctorTunnel({
@@ -150,28 +168,133 @@ await assert.rejects(
 await assert.rejects(() => readFile(invalidIdPaths.configFile, "utf8"), /ENOENT/);
 await assert.rejects(() => readFile(invalidIdPaths.profileFile, "utf8"), /ENOENT/);
 
-// Interactive setup prints cold-start hints and persists prompted values.
+// Cold-start setup explains the external client before accepting its path.
+const coldStartRoot = join(fixtureRoot, "cold-start-cancel");
+const coldStartEnv = {
+  ...process.env,
+  PATH: join(fixtureRoot, "missing-tunnel-client"),
+  REPORELAY_CONFIG_DIR: coldStartRoot,
+};
+const coldStartPaths = getTunnelPaths(coldStartEnv);
+await ensureQuickstartBridgeSecret(coldStartPaths.bridgeSecretFile);
+const coldStartOutput: string[] = [];
+await assert.rejects(
+  () => setupTunnel({
+    env: coldStartEnv,
+    interactive: true,
+    output: (line) => coldStartOutput.push(line),
+    readVisibleInput: async () => "",
+    readHiddenInput: async () => {
+      throw new Error("runtime key must not be requested after cancellation");
+    },
+  }),
+  /Tunnel setup cancelled/,
+);
+assert.equal(coldStartOutput[0], "RepoRelay — ChatGPT Web setup");
+assert.ok(coldStartOutput.includes("1. OpenAI tunnel-client"));
+assert.ok(coldStartOutput.some((line) => line.includes("official release")));
+assert.ok(coldStartOutput.some((line) => line.includes("https://github.com/openai/tunnel-client/releases/latest")));
+assert.ok(coldStartOutput.some((line) => line.includes("full path to the tunnel-client executable")));
+assert.equal(coldStartOutput.some((line) => line.includes("Runtime API key")), false);
+await assert.rejects(() => readFile(coldStartPaths.configFile, "utf8"), /ENOENT/);
+
+// An invalid prompted path fails safely without reaching credential prompts.
+const invalidClientRoot = join(fixtureRoot, "invalid-tunnel-client");
+const invalidClientEnv = {
+  ...process.env,
+  PATH: join(fixtureRoot, "missing-invalid-tunnel-client"),
+  REPORELAY_CONFIG_DIR: invalidClientRoot,
+};
+const invalidClientPaths = getTunnelPaths(invalidClientEnv);
+await ensureQuickstartBridgeSecret(invalidClientPaths.bridgeSecretFile);
+const invalidClientPath = join(invalidClientRoot, "downloads", process.platform === "win32" ? "tunnel-client.exe" : "tunnel-client");
+const invalidClientOutput: string[] = [];
+await assert.rejects(
+  () => setupTunnel({
+    env: invalidClientEnv,
+    interactive: true,
+    output: (line) => invalidClientOutput.push(line),
+    readVisibleInput: async () => invalidClientPath,
+    readHiddenInput: async () => "must-not-be-used",
+  }),
+  /tunnel-client executable was not found/,
+);
+assert.equal(invalidClientOutput[0], "RepoRelay — ChatGPT Web setup");
+assert.equal(invalidClientOutput.join("\n").includes("must-not-be-used"), false);
+assert.equal(invalidClientOutput.join("\n").includes((await readFile(invalidClientPaths.bridgeSecretFile, "utf8")).trim()), false);
+await assert.rejects(() => readFile(invalidClientPaths.configFile, "utf8"), /ENOENT/);
+
+// A tunnel-client on PATH skips the path prompt and makes Tunnel ID the next step.
+const pathClientRoot = await mkdtemp(join(fixtureRoot, "path-client-setup-"));
+const pathClientDirectory = await mkdtemp(join(pathClientRoot, "bin-"));
+const pathClientName = process.platform === "win32" ? "tunnel-client.exe" : "tunnel-client";
+const pathClientPath = join(pathClientDirectory, pathClientName);
+await writeFile(pathClientPath, "disposable tunnel-client fixture\n", "utf8");
+const pathClientEnv = {
+  ...process.env,
+  PATH: pathClientDirectory,
+  REPORELAY_CONFIG_DIR: join(pathClientRoot, "RepoRelay"),
+};
+const pathClientPaths = getTunnelPaths(pathClientEnv);
+await ensureQuickstartBridgeSecret(pathClientPaths.bridgeSecretFile);
+const pathClientOutput: string[] = [];
+const pathVisiblePrompts: string[] = [];
+const pathClientSetup = await setupTunnel({
+  env: pathClientEnv,
+  interactive: true,
+  output: (line) => pathClientOutput.push(line),
+  readVisibleInput: async (prompt) => {
+    pathVisiblePrompts.push(prompt);
+    return tunnelId;
+  },
+  readHiddenInput: async () => "path-runtime-key",
+});
+assert.equal(pathClientSetup.config.tunnelClientPath, pathClientPath);
+assert.equal(pathVisiblePrompts.length, 1);
+assert.equal(pathClientOutput.some((line) => line.includes("tunnel-client executable path")), false);
+assert.equal(pathClientOutput.some((line) => line.includes("1. OpenAI tunnel-client")), false);
+assert.ok(pathClientOutput.some((line) => line.includes("2. Tunnel ID")));
+
+// Missing tunnel-client with a supplied path shows all three numbered setup steps.
 const interactiveRoot = join(fixtureRoot, "interactive-setup");
-const interactiveEnv = { ...process.env, REPORELAY_CONFIG_DIR: interactiveRoot };
+const interactiveEnv = {
+  ...process.env,
+  PATH: join(fixtureRoot, "missing-interactive-tunnel-client"),
+  REPORELAY_CONFIG_DIR: interactiveRoot,
+};
 const interactivePaths = getTunnelPaths(interactiveEnv);
 await ensureQuickstartBridgeSecret(interactivePaths.bridgeSecretFile);
 const interactiveOutput: string[] = [];
+const interactiveVisiblePrompts: string[] = [];
+const interactiveVisibleValues = [process.execPath, tunnelId];
 await setupTunnel({
   env: interactiveEnv,
-  tunnelClientPath: process.execPath,
   interactive: true,
   output: (line) => interactiveOutput.push(line),
-  readVisibleInput: async () => tunnelId,
+  readVisibleInput: async (prompt) => {
+    interactiveVisiblePrompts.push(prompt);
+    return interactiveVisibleValues.shift() ?? "";
+  },
   readHiddenInput: async () => "interactive-runtime-key",
 });
-assert.ok(interactiveOutput.some((line) => line.includes("1. Tunnel ID")));
+assert.equal(interactiveOutput[0], "RepoRelay — ChatGPT Web setup");
+assert.ok(interactiveOutput.some((line) => line.includes("1. OpenAI tunnel-client")));
+assert.ok(interactiveOutput.some((line) => line.includes("2. Tunnel ID")));
+assert.ok(interactiveOutput.some((line) => line.includes("3. Runtime API key")));
 assert.ok(interactiveOutput.some((line) => line.includes("platform.openai.com/settings/organization/tunnels")));
-assert.ok(interactiveOutput.some((line) => line.includes("2. Runtime API key")));
 assert.ok(interactiveOutput.some((line) => line.includes("platform.openai.com/settings/organization/api-keys")));
 assert.ok(interactiveOutput.some((line) => line.includes("Tunnels Read + Use")));
 assert.ok(interactiveOutput.some((line) => line.includes("Runtime API key (input hidden):")));
+assert.ok(interactiveOutput.some((line) => line.includes("Create new secret key")));
+assert.ok(interactiveOutput.some((line) => line.includes("Choose the project")));
+assert.ok(interactiveOutput.some((line) => line.includes("organization permissions")));
+assert.equal(interactiveVisiblePrompts.length, 2);
 assert.equal((await readFile(interactivePaths.runtimeApiKeyFile, "utf8")).trim(), "interactive-runtime-key");
 assert.equal(JSON.parse(await readFile(interactivePaths.configFile, "utf8")).tunnelId, tunnelId);
+const interactiveOutputText = interactiveOutput.join("\n");
+assert.equal(interactiveOutputText.includes("interactive-runtime-key"), false);
+assert.equal(interactiveOutputText.includes((await readFile(interactivePaths.bridgeSecretFile, "utf8")).trim()), false);
+assert.equal(interactiveOutputText.includes("Admin API key"), false);
 
 // A successful run prints the ChatGPT Web completion checklist.
 const runRoot = join(fixtureRoot, "run-setup");

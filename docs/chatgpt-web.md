@@ -24,8 +24,12 @@ You need:
 - permission to create or use a custom MCP app in the target ChatGPT workspace.
 
 RepoRelay does not use the runtime API key for local MCP work. RepoRelay also
-does not download `tunnel-client`; setup stops and gives the official download
-link if the executable is missing.
+does not download or install `tunnel-client`. It is OpenAI's separate local
+transport binary: it carries the Secure MCP Tunnel traffic to the RepoRelay
+bridge, while RepoRelay remains the local MCP server and security boundary.
+Download the current official release from
+https://github.com/openai/tunnel-client/releases/latest, choose the build for
+your operating system, and extract it before setup.
 
 ## 1. Start RepoRelay
 
@@ -53,16 +57,36 @@ search_files
 
 ## 2. Run one-time tunnel setup
 
-Put the official `tunnel-client` executable on PATH, or keep its full path ready.
-In a second PowerShell window, run:
+First create the runtime API key in OpenAI Platform:
+
+1. Open https://platform.openai.com/settings/organization/api-keys.
+2. Click **Create new secret key**.
+3. Choose the project you want to use with RepoRelay.
+4. Create the key and copy it when OpenAI shows it. You provide it to setup
+   below; RepoRelay stores it in a protected file.
+
+Separately, your OpenAI Platform account needs the **Tunnels Read + Use**
+organization permission to run or select the tunnel. That is an
+organization-level permission your org owner or RBAC admin grants, not a
+setting on the API key itself. Creating or editing a tunnel needs **Tunnels
+Read + Manage**; **Tunnels Read + Use** is enough to run `tunnel-client` and
+select the tunnel. Do not use an Admin API key, and never paste any key into
+ChatGPT.
+
+Put the extracted `tunnel-client` executable on PATH, or keep its full path
+ready. RepoRelay does not download it for you. In a second PowerShell window,
+run:
 
 ```powershell
 reporelay tunnel setup
 ```
 
-Setup prompts for the tunnel ID and then for the runtime API key. The key prompt
-does not echo input. The key is never accepted as an argument, environment value,
-generated config value, or user-facing bridge-header variable.
+On a cold start, setup first explains the OpenAI `tunnel-client` step and asks
+for its path only when it is not already on PATH or stored in valid RepoRelay
+configuration. Then it prompts for the tunnel ID and the runtime API key. The
+key prompt does not echo input. The key is never accepted as an argument,
+environment value, generated config value, or user-facing bridge-header
+variable.
 
 Setup preserves an existing bridge secret and runtime-key file. It writes this
 per-user layout under `%LOCALAPPDATA%\RepoRelay`:
@@ -74,9 +98,9 @@ tunnel\profiles\reporelay.yaml
 tunnel\secrets\openai-runtime-api-key.txt
 ```
 
-`config.json` contains only the schema version, tunnel ID, profile name, and
-resolved tunnel-client path. The generated profile uses the official named-profile
-schema and file references for both credentials:
+`config.json` contains only the schema version, tunnel ID, profile name, and the
+resolved tunnel-client path selected during setup. The generated profile uses
+the official named-profile schema and file references for both credentials:
 
 ```yaml
 config_version: 1
