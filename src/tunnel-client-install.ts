@@ -312,7 +312,7 @@ function browserOpenCommand(url: string): { command: string; args: string[] } | 
   return undefined;
 }
 
-async function defaultOpenCommand(command: string, args: string[]): Promise<boolean> {
+export async function defaultOpenCommand(command: string, args: string[]): Promise<boolean> {
   return await new Promise<boolean>((resolveExit) => {
     let settled = false;
     const finish = (opened: boolean) => {
@@ -320,9 +320,10 @@ async function defaultOpenCommand(command: string, args: string[]): Promise<bool
       settled = true;
       resolveExit(opened);
     };
+    // Keep the launcher referenced until it reports success or failure. An
+    // unrefed child can let Node exit while this promise is still pending.
     const child = spawn(command, args, { stdio: "ignore", windowsHide: true, detached: true });
     child.once("error", () => finish(false));
     child.once("exit", (code) => finish(code === 0));
-    child.unref();
   });
 }

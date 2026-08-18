@@ -212,6 +212,7 @@ ChatGPT
 → create custom MCP app
 → connection: Tunnel
 → choose RepoRelay's tunnel
+→ authentication: No authentication
 → Scan Tools
 → verify 7 tools
 → create/use the app
@@ -221,9 +222,16 @@ ChatGPT
 1. Enable Developer Mode, or ask the workspace administrator for access.
 2. Create a custom MCP app and choose the **Tunnel** connection.
 3. Select the tunnel associated with the target ChatGPT workspace.
-4. Do not enter `127.0.0.1`, `localhost`, or either credential.
-5. Run **Scan Tools**, review the returned tools, and create the app.
-6. In a new chat, select the RepoRelay app.
+4. When ChatGPT asks for authentication, select **No authentication**.
+5. Save or create the app. Do not enter `127.0.0.1`, `localhost`, or either
+   credential.
+6. Run **Scan Tools**, review the returned tools, and verify the expected
+   RepoRelay tools appear.
+7. In a new chat, select the RepoRelay app.
+
+> **Authentication: No authentication.** RepoRelay already authenticates the
+> local bridge through the protected `X-RepoRelay-Bridge-Secret` used by the
+> tunnel. Do not configure OAuth or another ChatGPT-side authentication method.
 
 The normal quickstart exposes exactly seven tools (the four read-only tools
 above, plus `write_next_task`, `write_review`, and `update_handoff_state`).

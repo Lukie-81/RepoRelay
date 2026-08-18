@@ -50,8 +50,9 @@ export const CHATGPT_COMPLETION_CHECKLIST: readonly string[] = [
   "ChatGPT Web completion checklist:",
   "  1. Create or select the custom MCP app in ChatGPT.",
   "  2. Choose the tunnel connection and select this tunnel.",
-  "  3. Run Scan Tools and verify the tools: exactly 7 with handoffs, or exactly 4 in read-only mode.",
-  "  4. Start a new chat and select the RepoRelay app.",
+  "  3. When asked for authentication, select No authentication.",
+  "  4. Run Scan Tools and verify the tools: exactly 7 with handoffs, or exactly 4 in read-only mode.",
+  "  5. Start a new chat and select the RepoRelay app.",
   "Do not enter 127.0.0.1 or localhost, and never paste the runtime API key or bridge secret into ChatGPT.",
 ];
 

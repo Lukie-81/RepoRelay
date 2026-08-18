@@ -99,15 +99,24 @@ const firstPaths = getTunnelPaths(firstEnv);
 await ensureQuickstartBridgeSecret(firstPaths.bridgeSecretFile);
 const firstOutput: string[] = [];
 const openedUrls: string[] = [];
+const firstWizardEvents: string[] = [];
 let firstDownloadCalls = 0;
 const first = await setupTunnel({
   env: firstEnv,
   interactive: true,
   output: (line) => firstOutput.push(line),
-  readVisibleInput: async () => tunnelId,
-  readHiddenInput: async () => runtimeApiKey,
+  readVisibleInput: async () => {
+    firstWizardEvents.push("tunnel-id-prompt");
+    return tunnelId;
+  },
+  readHiddenInput: async () => {
+    firstWizardEvents.push("runtime-api-key-prompt");
+    return runtimeApiKey;
+  },
   openUrl: async (_command, args) => {
-    openedUrls.push(args[args.length - 1] ?? "");
+    const url = args[args.length - 1] ?? "";
+    openedUrls.push(url);
+    firstWizardEvents.push(`browser-open:${url}`);
     return true;
   },
   download: async () => {
@@ -125,6 +134,12 @@ assert.equal(first.config.tunnelClientPath, managedTunnelClientExecutablePath(fi
 assert.equal(first.config.localMcpUrl, "http://127.0.0.1:7676/mcp");
 assert.equal(firstDownloadCalls, 1);
 assert.deepEqual(openedUrls, [OFFICIAL_OPENAI_URLS.tunnels, OFFICIAL_OPENAI_URLS.apiKeys]);
+assert.deepEqual(firstWizardEvents, [
+  `browser-open:${OFFICIAL_OPENAI_URLS.tunnels}`,
+  "tunnel-id-prompt",
+  `browser-open:${OFFICIAL_OPENAI_URLS.apiKeys}`,
+  "runtime-api-key-prompt",
+]);
 assert.ok(firstOutput.includes("RepoRelay — Connect ChatGPT"));
 assert.ok(firstOutput.includes("Checking local setup..."));
 assert.ok(firstOutput.includes("✓ RepoRelay bridge found"));
@@ -296,6 +311,8 @@ const idLoopResult = await setupTunnel({
 });
 assert.equal(idLoopResult.config.tunnelId, tunnelId);
 assert.ok(idLoopOutput.some((line) => line.includes("does not look like a tunnel ID")));
+assert.ok(idLoopOutput.some((line) => line.includes("Could not open your browser automatically")));
+assert.ok(idLoopOutput.some((line) => line.includes(OFFICIAL_OPENAI_URLS.tunnels)));
 
 // ---- Advanced override: custom --tunnel-client-path -------------------------
 

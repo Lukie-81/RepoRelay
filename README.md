@@ -312,11 +312,27 @@ ChatGPT
 → create custom MCP app
 → connection: Tunnel
 → choose RepoRelay's tunnel
+→ authentication: No authentication
 → Scan Tools
 → verify 7 tools
 → create/use the app
 → start a new chat
 ```
+
+Follow this sequence:
+
+1. Create the custom MCP app.
+2. Choose the **Tunnel** connection.
+3. Select the RepoRelay/OpenAI Secure MCP Tunnel.
+4. When ChatGPT asks for authentication, select **No authentication**.
+5. Save or create the app.
+6. Run **Scan Tools**.
+7. Verify the expected RepoRelay tools appear.
+8. Start a new chat and select the RepoRelay app.
+
+> **Authentication: No authentication.** RepoRelay already authenticates the
+> local bridge through the protected `X-RepoRelay-Bridge-Secret` used by the
+> tunnel. Do not configure OAuth or another ChatGPT-side authentication method.
 
 Never paste `127.0.0.1`, `localhost`, the RepoRelay bridge secret, or an OpenAI
 runtime API key into ChatGPT. The tunnel connection does all the networking.

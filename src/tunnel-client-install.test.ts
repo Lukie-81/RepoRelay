@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -6,6 +7,7 @@ import { join } from "node:path";
 import { crc32, deflateRawSync } from "node:zlib";
 import {
   OFFICIAL_OPENAI_URLS,
+  defaultOpenCommand,
   SUPPORTED_TUNNEL_CLIENT,
   TunnelClientVerificationError,
   downloadToBuffer,
@@ -350,5 +352,23 @@ assert.equal(await openOfficialUrl(OFFICIAL_OPENAI_URLS.tunnels, { interactive: 
 assert.ok(fallbackOutput.some((line) => line.includes("Could not open your browser automatically")));
 assert.ok(fallbackOutput.some((line) => line.includes("Open this page manually")));
 assert.ok(fallbackOutput.some((line) => line.includes(OFFICIAL_OPENAI_URLS.tunnels)));
+
+// The real child-process lifecycle must keep the awaiting CLI alive until the
+// browser launcher exits. Run the helper in an isolated process so a broken
+// unref() implementation cannot make this assertion pass by exiting early.
+const lifecycleProbeScript = [
+  'import { defaultOpenCommand } from "./src/tunnel-client-install.ts";',
+  'const opened = await defaultOpenCommand(process.execPath, ["-e", "setTimeout(() => process.exit(0), 50)"]);',
+  'if (!opened) process.exit(1);',
+  'process.stdout.write("continued");',
+].join("\n");
+const lifecycleProbe = spawnSync(
+  process.execPath,
+  ["--import", "tsx", "--eval", lifecycleProbeScript],
+  { cwd: process.cwd(), env: process.env, encoding: "utf8", timeout: 5_000 },
+);
+assert.equal(lifecycleProbe.error, undefined, `browser-launch lifecycle probe failed: ${lifecycleProbe.error?.message ?? "unknown error"}`);
+assert.equal(lifecycleProbe.status, 0, lifecycleProbe.stderr);
+assert.equal(lifecycleProbe.stdout, "continued", "setup must continue after the browser launcher exits");
 
 console.log(`Tunnel-client install fixtures preserved at ${fixtureRoot}`);
