@@ -26,6 +26,20 @@ without giving it control of the rest of your computer.</p>
 <p align="center"><b>Read safe files &middot; Search code &middot; One approved repository &middot; No shell &middot; No Git &middot; No arbitrary writes</b></p>
 
 <p align="center">
+  <a href="docs/assets/reporelay-demo.mp4">
+    <img
+      src="docs/assets/reporelay-demo.gif"
+      width="760"
+      alt="RepoRelay demo showing ChatGPT safely inspecting an approved local repository while restricted access is blocked"
+    >
+  </a>
+</p>
+
+<p align="center">
+  <a href="docs/assets/reporelay-demo.mp4"><b>Watch the full demo &rarr;</b></a>
+</p>
+
+<p align="center">
   <a href="#quick-setup">Quick Setup</a> &middot;
   <a href="#youre-connected--what-now">Use It</a> &middot;
   <a href="#chatgpt--coding-agent-handoff">Handoff</a> &middot;
