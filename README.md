@@ -15,6 +15,7 @@ without giving it control of the rest of your computer.</p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
   <a href="#before-you-install"><img src="https://img.shields.io/badge/node-%3E%3D22.19%20%3C27-green.svg" alt="Node.js >=22.19 <27"></a>
   <img src="https://img.shields.io/badge/protocol-MCP-6e5494.svg" alt="Model Context Protocol">
+  <a href="https://mcpservers.org/servers/lukie-81/reporelay"><img src="https://img.shields.io/badge/mcpservers.org-listed-38bdf8?labelColor=1e1e2e" alt="mcpservers.org listed"></a>
 </p>
 
 <p align="center">
