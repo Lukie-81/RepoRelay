@@ -1,4 +1,12 @@
+# This file is served from the /RepoRelay/ project path. GitHub Pages project
+# sites cannot control the host-root file at https://lukie-81.github.io/robots.txt.
+# It is retained here as useful project documentation and for crawlers that
+# evaluate the project-path file.
 User-agent: *
+Allow: /
+
+# OpenAI's search crawler is not blocked by this project-site policy.
+User-agent: OAI-SearchBot
 Allow: /
 
 Sitemap: https://lukie-81.github.io/RepoRelay/sitemap.xml

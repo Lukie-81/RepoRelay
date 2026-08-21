@@ -3,30 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>How can ChatGPT access a local repository? | RepoRelay</title>
-  <meta name="description" content="Learn how ChatGPT Web can review a local repository through MCP, OpenAI's Secure MCP Tunnel, tunnel-client, and RepoRelay's one-root security boundary.">
+  <title>ChatGPT Local Repository Access via MCP | RepoRelay</title>
+  <meta name="description" content="Learn how ChatGPT can review an uncommitted local repository through MCP, OpenAI's Secure MCP Tunnel, tunnel-client, and RepoRelay's one-root boundary.">
   <meta name="theme-color" content="#07101f">
   <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="RepoRelay">
   <meta property="og:title" content="How can ChatGPT access a local repository? | RepoRelay">
-  <meta property="og:description" content="A factual guide to ChatGPT local repository access through MCP and a bounded local bridge.">
+  <meta property="og:description" content="A factual guide to reviewing an uncommitted local repository through MCP and a bounded RepoRelay bridge.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta property="og:image:alt" content="RepoRelay request path from ChatGPT through MCP transport to one approved local repository">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="How can ChatGPT access a local repository? | RepoRelay">
   <meta name="twitter:description" content="A factual guide to ChatGPT local repository access through MCP and a bounded local bridge.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta name="twitter:image:alt" content="RepoRelay request path from ChatGPT through MCP transport to one approved local repository">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
   <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
   <script defer src="/RepoRelay/assets/js/site.js"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
-      {"@type": "ListItem", "position": 2, "name": "ChatGPT + local repository", "item": "https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/"}
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": "https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/#webpage",
+        "url": "https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/",
+        "name": "ChatGPT Local Repository Access via MCP | RepoRelay",
+        "description": "Learn how ChatGPT can review an uncommitted local repository through MCP, OpenAI's Secure MCP Tunnel, tunnel-client, and RepoRelay's one-root boundary.",
+        "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
+        "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
+        "breadcrumb": {"@id": "https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/#breadcrumb"}
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/#breadcrumb",
+        "itemListElement": [
+          {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
+          {"@type": "ListItem", "position": 2, "name": "ChatGPT + local repository", "item": "https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/"}
+        ]
+      }
     ]
   }
   </script>
@@ -46,6 +63,20 @@
       <h1>How can ChatGPT access a local repository?</h1>
       <p class="lede"><strong>ChatGPT Web can review a local repository through an MCP server that you run on your machine, reached through an authenticated Secure MCP Tunnel.</strong> RepoRelay is that local MCP server: it exposes one explicitly approved repository through a narrow set of review tools.</p>
       <div class="cta-row"><a class="button" href="/RepoRelay/install/">Follow the setup guide <span class="arrow" aria-hidden="true">→</span></a><a class="button secondary" href="/RepoRelay/github-vs-local/">Compare GitHub and local access</a></div>
+    </section>
+
+    <section class="section compact" aria-labelledby="answer-title">
+      <div class="container">
+        <div class="section-head"><div><p class="section-kicker">Answer first</p><h2 id="answer-title">What does RepoRelay let ChatGPT access?</h2></div></div>
+        <div class="prose-panel">
+          <h3>One approved repository, through a narrow MCP surface.</h3>
+          <p>ChatGPT can call RepoRelay's inspection tools to list files, read eligible files, and search content inside the one canonical repository you selected. The normal quickstart can also enable three fixed handoff writers for <code>.ai-handoff</code> files.</p>
+          <h3>Does RepoRelay give ChatGPT shell access?</h3>
+          <p>No. RepoRelay does not expose shell, PowerShell, Git, process execution, arbitrary source-file editing, or delete tools. <a href="/RepoRelay/security/">The security page documents the enforced boundary and its limits.</a></p>
+          <h3>Can it read outside the approved repository?</h3>
+          <p>Containment checks reject traversal, absolute escapes, link-based escapes, and hard-linked files outside the canonical root. RepoRelay is still an application boundary, not an operating-system sandbox against malicious software running as the same user.</p>
+        </div>
+      </div>
     </section>
 
     <section class="section compact" aria-labelledby="why-title"><div class="container"><div class="split"><div class="sticky-copy"><p class="section-kicker">Why a bridge is needed</p><h2 id="why-title">A browser session is not a local file browser.</h2></div><div class="prose-panel"><p>ChatGPT Web does not automatically receive permission to walk through arbitrary folders on your computer. A local folder contains more than source code: credentials, personal files, build outputs, Git metadata, and unrelated projects may sit nearby.</p><p>MCP supplies a standard way for an AI client to call tools exposed by a server. The server decides which operations exist and which arguments are accepted. A transport layer can carry those calls, but it does not decide what the server is authorized to read or write.</p><p>RepoRelay makes that decision explicit: one canonical repository root, authenticated loopback binding, bounded review operations, and fixed handoff destinations when handoff writes are enabled.</p></div></div></div></section>

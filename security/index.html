@@ -4,29 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>RepoRelay security boundary - loopback, containment, fixed handoffs</title>
-  <meta name="description" content="Read RepoRelay's documented security boundary: one canonical root, loopback authentication, traversal and link defenses, sensitive-path handling, bounded operations, fixed handoff targets, audit, and limitations.">
+  <meta name="description" content="Read RepoRelay's security model for bounded MCP repository access: one canonical root, loopback authentication, containment checks, no shell access, fixed handoffs, audit, and limitations.">
   <meta name="theme-color" content="#07101f">
   <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/security/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="RepoRelay">
   <meta property="og:title" content="RepoRelay security boundary - loopback, containment, fixed handoffs">
-  <meta property="og:description" content="A precise summary of RepoRelay's enforced application boundary and its limitations.">
+  <meta property="og:description" content="A precise summary of RepoRelay's enforced application boundary for local MCP code review, including its limits and non-sandbox claims.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/security/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta property="og:image:alt" content="RepoRelay security boundary around one approved local repository">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="RepoRelay security boundary - loopback, containment, fixed handoffs">
   <meta name="twitter:description" content="A precise summary of RepoRelay's enforced application boundary and its limitations.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta name="twitter:image:alt" content="RepoRelay security boundary around one approved local repository">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
   <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
   <script defer src="/RepoRelay/assets/js/site.js"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
-      {"@type": "ListItem", "position": 2, "name": "Security", "item": "https://lukie-81.github.io/RepoRelay/security/"}
+    "@graph": [
+      {
+        "@type": "WebPage",
+        "@id": "https://lukie-81.github.io/RepoRelay/security/#webpage",
+        "url": "https://lukie-81.github.io/RepoRelay/security/",
+        "name": "RepoRelay security boundary - loopback, containment, fixed handoffs",
+        "description": "Read RepoRelay's security model for bounded MCP repository access: one canonical root, loopback authentication, containment checks, no shell access, fixed handoffs, audit, and limitations.",
+        "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
+        "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
+        "breadcrumb": {"@id": "https://lukie-81.github.io/RepoRelay/security/#breadcrumb"}
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://lukie-81.github.io/RepoRelay/security/#breadcrumb",
+        "itemListElement": [
+          {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
+          {"@type": "ListItem", "position": 2, "name": "Security", "item": "https://lukie-81.github.io/RepoRelay/security/"}
+        ]
+      }
     ]
   }
   </script>
@@ -41,6 +58,18 @@
 
   <main id="main-content">
     <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Security</span></nav><p class="eyebrow">Read the source of truth</p><h1>A narrow application boundary, with explicit limits.</h1><p class="lede">RepoRelay is an authenticated, loopback-only MCP bridge for one explicitly approved repository. Its controls limit the tools and paths exposed to the reviewer; they do not turn the process into an operating-system sandbox.</p><div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">Read SECURITY.md on GitHub <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="/RepoRelay/install/">See the audit-first setup</a></div></section>
+
+    <section class="section compact" aria-labelledby="security-answer-title">
+      <div class="container">
+        <div class="prose-panel">
+          <p class="section-kicker">Answer first</p>
+          <h2 id="security-answer-title">Does RepoRelay give ChatGPT shell access?</h2>
+          <p>No. RepoRelay's public review server does not register shell, PowerShell, Git, process-launch, arbitrary source-file edit, patch, delete, or local-agent execution tools.</p>
+          <h3>What does it protect?</h3>
+          <p>It enforces an authenticated loopback bridge, one canonical approved root, containment checks, sensitive-path defenses, bounded operations, and fixed handoff destinations when those writers are enabled. These are application controls, not an operating-system sandbox.</p>
+        </div>
+      </div>
+    </section>
 
     <section class="section compact" aria-labelledby="surface-title"><div class="container"><div class="section-head"><div><p class="section-kicker">Tool surface</p><h2 id="surface-title">The default is small enough to inspect.</h2><p>The normal CLI quickstart exposes seven tools. The general server profile and optional inspection-only quickstart expose only the four read/search tools.</p></div></div><div class="feature-grid"><article class="feature"><h3>Inspection tools</h3><ul class="pills"><li class="pill good">open_workspace</li><li class="pill good">list_files</li><li class="pill good">read_file</li><li class="pill good">search_files</li></ul><p class="small">These tools read or search eligible content inside the opened repository. Reads and searches are bounded.</p></article><article class="feature"><h3>Fixed handoff writers</h3><ul class="pills"><li class="pill warn">write_next_task</li><li class="pill warn">write_review</li><li class="pill warn">update_handoff_state</li></ul><p class="small">When enabled, they can replace only pre-existing <code>.ai-handoff/NEXT_TASK.md</code>, <code>.ai-handoff/REVIEW.md</code>, and <code>.ai-handoff/STATE.json</code>. <code>RESULT.md</code> remains implementer-owned.</p></article></div></div></section>
 

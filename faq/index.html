@@ -13,10 +13,12 @@
   <meta property="og:description" content="Direct, source-checked answers about RepoRelay's tool surface, local access, security boundary, and setup.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/faq/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta property="og:image:alt" content="RepoRelay frequently asked questions about MCP, local repositories, and security">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="RepoRelay FAQ - MCP, ChatGPT local repo access, and security">
   <meta name="twitter:description" content="Direct, source-checked answers about RepoRelay's tool surface, local access, security boundary, and setup.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta name="twitter:image:alt" content="RepoRelay frequently asked questions about MCP, local repositories, and security">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
   <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
   <script defer src="/RepoRelay/assets/js/site.js"></script>
@@ -24,6 +26,12 @@
   {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    "@id": "https://lukie-81.github.io/RepoRelay/faq/#faq",
+    "url": "https://lukie-81.github.io/RepoRelay/faq/",
+    "name": "RepoRelay FAQ - MCP, ChatGPT local repo access, and security",
+    "description": "Direct answers about RepoRelay's MCP tool surface, local repository access, security boundary, and setup.",
+    "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
+    "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
     "mainEntity": [
       {"@type":"Question","name":"What is RepoRelay?","acceptedAnswer":{"@type":"Answer","text":"RepoRelay is an open-source local MCP bridge for tightly controlled repository review and structured coding-agent handoffs. It exposes one explicitly approved local repository through an authenticated loopback server."}},
       {"@type":"Question","name":"Is RepoRelay open source?","acceptedAnswer":{"@type":"Answer","text":"Yes. RepoRelay is published under the MIT License in the public GitHub repository at https://github.com/Lukie-81/RepoRelay."}},
@@ -43,6 +51,17 @@
       {"@type":"Question","name":"Which operating systems are supported?","acceptedAnswer":{"@type":"Answer","text":"The README states that the quickstart works on Windows, macOS, and Linux. Windows 10/11 is the fully validated lifecycle and operational platform, including the PowerShell scripts and tunnel-managed runbook."}},
       {"@type":"Question","name":"Which Node.js versions are supported?","acceptedAnswer":{"@type":"Answer","text":"RepoRelay requires Node.js >=22.19 and <27. npm is included with Node.js."}},
       {"@type":"Question","name":"Is RepoRelay free and open source?","acceptedAnswer":{"@type":"Answer","text":"The RepoRelay project is MIT-licensed and published as open source. OpenAI Secure MCP Tunnel availability, permissions, and any account or organization requirements are separate from RepoRelay's license."}}
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "@id": "https://lukie-81.github.io/RepoRelay/faq/#breadcrumb",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
+      {"@type": "ListItem", "position": 2, "name": "FAQ", "item": "https://lukie-81.github.io/RepoRelay/faq/"}
     ]
   }
   </script>
