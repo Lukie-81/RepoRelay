@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install RepoRelay - Connect ChatGPT to a local repository</title>
+  <meta name="description" content="Install RepoRelay with npm, quickstart one approved repository, run the local audit, and connect ChatGPT through OpenAI's Secure MCP Tunnel.">
+  <meta name="theme-color" content="#07101f">
+  <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/install/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="RepoRelay">
+  <meta property="og:title" content="Install RepoRelay - Connect ChatGPT to a local repository">
+  <meta property="og:description" content="A source-accurate setup path for installing RepoRelay, auditing the bridge, and connecting a ChatGPT MCP app.">
+  <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/install/">
+  <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Install RepoRelay - Connect ChatGPT to a local repository">
+  <meta name="twitter:description" content="Install, audit, and connect RepoRelay to ChatGPT through Secure MCP Tunnel.">
+  <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
+  <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
+  <script defer src="/RepoRelay/assets/js/site.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
+      {"@type": "ListItem", "position": 2, "name": "Install", "item": "https://lukie-81.github.io/RepoRelay/install/"}
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header"><div class="nav-wrap">
+    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a>
+    <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation"><a href="/RepoRelay/docs/">Docs</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/install/" aria-current="page">Install</a></nav>
+    <div class="nav-controls"><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">↗</span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button><button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button></div>
+  </div></header>
+
+  <main id="main-content">
+    <section class="page-hero container">
+      <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Install</span></nav>
+      <p class="eyebrow">Setup guide / current CLI flow</p>
+      <h1>Install RepoRelay and connect one local repository.</h1>
+      <p class="lede">Install the CLI, start one approved root, and connect ChatGPT through the documented tunnel flow. The full canonical steps remain in the repository docs.</p>
+      <div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/chatgpt-web.md">Open canonical connection docs <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="/RepoRelay/security/">Review the boundary first</a></div>
+    </section>
+
+    <section class="section compact" aria-labelledby="prereq-title">
+      <div class="container">
+        <div class="feature-grid">
+          <article class="feature"><h3 id="prereq-title">Prerequisites</h3><p>Use Node.js <code>&gt;=22.19</code> and <code>&lt;27</code>. npm is included. Have an existing local project directory, OpenAI Secure MCP Tunnel access, and permission to create or use a custom MCP app in the target ChatGPT workspace.</p></article>
+          <article class="feature"><h3>Windows path note</h3><p>Quote the complete path and keep its backslashes: <code>reporelay quickstart "C:\Projects\my-app"</code>. A drive root or the whole user folder is too broad for the approved repository.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="steps-title">
+      <div class="container">
+        <div class="section-head"><div><p class="section-kicker">The short path</p><h2 id="steps-title">Three steps to a bounded review.</h2><p>Keep the RepoRelay terminal open. Use the advanced links below for the detailed canonical flow.</p></div></div>
+        <div class="primary-steps">
+          <article class="primary-step"><span class="step-number">01</span><h3>Install RepoRelay</h3><p>Install the public CLI globally, then confirm the command is available.</p><div class="code-block"><button class="copy-button" type="button" data-copy-target="install-command">Copy</button><pre id="install-command">npm install -g reporelay-mcp@latest
+reporelay --version</pre></div></article>
+          <article class="primary-step"><span class="step-number">02</span><h3>Start your repository</h3><p>Use one existing project directory. The normal quickstart starts the authenticated loopback bridge and enables the fixed handoff writers.</p><div class="code-block"><button class="copy-button" type="button" data-copy-target="quickstart-command">Copy</button><pre id="quickstart-command">reporelay quickstart "C:\Projects\my-app"</pre></div><p class="small">Use <code>--no-handoff-writes</code> for the four-tool inspection-only surface.</p></article>
+          <article class="primary-step"><span class="step-number">03</span><h3>Connect ChatGPT</h3><p>Run the audit, complete tunnel setup, then keep the tunnel running while the ChatGPT MCP app scans the seven-tool surface.</p><div class="code-block"><button class="copy-button" type="button" data-copy-target="connect-command">Copy</button><pre id="connect-command">reporelay audit "C:\Projects\my-app"
+reporelay tunnel setup
+reporelay tunnel doctor
+reporelay tunnel run</pre></div><p class="small">Test a sensitive path such as <code>.env</code>; it should be blocked.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="advanced-title">
+      <div class="container">
+        <div class="section-head"><div><p class="section-kicker">Advanced</p><h2 id="advanced-title">Keep the detailed checks close.</h2><p>These links preserve the canonical depth without making the first install feel like a ten-step checklist.</p></div></div>
+        <div class="advanced-grid">
+          <a class="advanced-link" href="/RepoRelay/security/"><strong>Audit</strong><span>Read the enforced boundary and live verification notes.</span></a>
+          <a class="advanced-link" href="/RepoRelay/chatgpt-local-repo/"><strong>Inspection-only mode</strong><span>Use the four-tool surface when handoff writes are unnecessary.</span></a>
+          <a class="advanced-link" href="https://developers.openai.com/api/docs/guides/secure-mcp-tunnels"><strong>Tunnel doctor</strong><span>Follow the official transport and connectivity guidance.</span></a>
+          <a class="advanced-link" href="/RepoRelay/faq/"><strong>Troubleshooting</strong><span>Resolve common tunnel, app, and boundary questions.</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="daily-title">
+      <div class="container">
+        <div class="split">
+          <div><p class="section-kicker">After first setup</p><h2 id="daily-title">Daily use is smaller.</h2><p>Start RepoRelay for the repository, run the tunnel, and select the existing ChatGPT app. Switch repositories by restarting quickstart for the new path.</p></div>
+          <div class="prose-panel"><h3>Useful recovery commands</h3><p><code>reporelay tunnel doctor</code> checks the connection again. <code>reporelay doctor</code> prints sanitized configuration and security status. A custom quickstart port is carried into tunnel setup automatically, or can be supplied explicitly with <code>--port</code>.</p><a class="button text" href="/RepoRelay/faq/">See troubleshooting answers <span class="arrow" aria-hidden="true">→</span></a></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="install-source-title"><div class="container"><div class="cta-band"><p class="section-kicker">Canonical source</p><h2 id="install-source-title">Setup details belong to the repository.</h2><p>This page is a concise guide. For the full tunnel flow, configuration notes, Windows operations, and handoff protocol, use the source documentation on GitHub.</p><div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md">Read the README <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="/RepoRelay/docs/">Browse docs</a></div></div></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/faq/">FAQ</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/chatgpt-web.md">ChatGPT Web docs ↗</a><a href="https://www.npmjs.com/package/reporelay-mcp">npm package ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Built as a static GitHub Pages site</span></div></div></footer>
+</body>
+</html>

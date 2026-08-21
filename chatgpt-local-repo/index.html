@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How can ChatGPT access a local repository? | RepoRelay</title>
+  <meta name="description" content="Learn how ChatGPT Web can review a local repository through MCP, OpenAI's Secure MCP Tunnel, tunnel-client, and RepoRelay's one-root security boundary.">
+  <meta name="theme-color" content="#07101f">
+  <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="RepoRelay">
+  <meta property="og:title" content="How can ChatGPT access a local repository? | RepoRelay">
+  <meta property="og:description" content="A factual guide to ChatGPT local repository access through MCP and a bounded local bridge.">
+  <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/">
+  <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How can ChatGPT access a local repository? | RepoRelay">
+  <meta name="twitter:description" content="A factual guide to ChatGPT local repository access through MCP and a bounded local bridge.">
+  <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
+  <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
+  <script defer src="/RepoRelay/assets/js/site.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
+      {"@type": "ListItem", "position": 2, "name": "ChatGPT + local repository", "item": "https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/"}
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header"><div class="nav-wrap">
+    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a>
+    <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation"><a href="/RepoRelay/docs/">Docs</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/install/">Install</a></nav>
+    <div class="nav-controls"><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">↗</span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button><button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button></div>
+  </div></header>
+
+  <main id="main-content">
+    <section class="page-hero container">
+      <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">ChatGPT + local repository</span></nav>
+      <p class="eyebrow">A direct answer</p>
+      <h1>How can ChatGPT access a local repository?</h1>
+      <p class="lede"><strong>ChatGPT Web can review a local repository through an MCP server that you run on your machine, reached through an authenticated Secure MCP Tunnel.</strong> RepoRelay is that local MCP server: it exposes one explicitly approved repository through a narrow set of review tools.</p>
+      <div class="cta-row"><a class="button" href="/RepoRelay/install/">Follow the setup guide <span class="arrow" aria-hidden="true">→</span></a><a class="button secondary" href="/RepoRelay/github-vs-local/">Compare GitHub and local access</a></div>
+    </section>
+
+    <section class="section compact" aria-labelledby="why-title"><div class="container"><div class="split"><div class="sticky-copy"><p class="section-kicker">Why a bridge is needed</p><h2 id="why-title">A browser session is not a local file browser.</h2></div><div class="prose-panel"><p>ChatGPT Web does not automatically receive permission to walk through arbitrary folders on your computer. A local folder contains more than source code: credentials, personal files, build outputs, Git metadata, and unrelated projects may sit nearby.</p><p>MCP supplies a standard way for an AI client to call tools exposed by a server. The server decides which operations exist and which arguments are accepted. A transport layer can carry those calls, but it does not decide what the server is authorized to read or write.</p><p>RepoRelay makes that decision explicit: one canonical repository root, authenticated loopback binding, bounded review operations, and fixed handoff destinations when handoff writes are enabled.</p></div></div></div></section>
+
+    <section class="section" aria-labelledby="roles-title"><div class="container"><div class="section-head"><div><p class="section-kicker">Five components / five jobs</p><h2 id="roles-title">Do not collapse the architecture into one product.</h2><p>ChatGPT, MCP, the tunnel, and RepoRelay each have a different role. Keeping the roles separate makes the security boundary easier to inspect.</p></div></div><div class="prose-panel"><table class="boundary-table"><thead><tr><th>Component</th><th>Role in local repository access</th></tr></thead><tbody><tr><td>ChatGPT Web</td><td>The MCP client and reviewer. It calls the tools that the server exposes; it does not receive a general terminal.</td></tr><tr><td>Model Context Protocol</td><td>The protocol used to describe and call tools between a client and a server. MCP itself is not the repository boundary.</td></tr><tr><td>OpenAI Secure MCP Tunnel</td><td>The external connectivity service that allows a private local MCP server to be reached by an eligible ChatGPT workspace.</td></tr><tr><td><code>tunnel-client</code></td><td>The local forwarder configured to point at RepoRelay's loopback MCP endpoint.</td></tr><tr><td>RepoRelay</td><td>The local MCP server and application boundary that authenticates requests and enforces the approved repository/tool surface.</td></tr></tbody></table></div></div></section>
+
+    <section class="section" aria-labelledby="path-title"><div class="container"><div class="split reverse"><div class="architecture"><p class="section-kicker">Request path</p><div class="flow" aria-label="ChatGPT local repository request path"><div class="flow-step"><strong>1 / ChatGPT</strong><span>Calls an MCP tool.</span></div><div class="flow-step"><strong>2 / Tunnel</strong><span>Carries the request.</span></div><div class="flow-step"><strong>3 / Client</strong><span>Forwards locally.</span></div><div class="flow-step highlight"><strong>4 / RepoRelay</strong><span>Authenticates and authorizes.</span></div><div class="flow-step"><strong>5 / Root</strong><span>Returns bounded data.</span></div></div></div><div><p class="section-kicker">What happens next</p><h2 id="path-title">Review the current working tree without making it the whole computer.</h2><p>After <code>open_workspace</code>, ChatGPT can use the four inspection tools to list directories, read eligible files, and search repository content. The normal quickstart can also enable three fixed handoff writers: <code>write_next_task</code>, <code>write_review</code>, and <code>update_handoff_state</code>.</p><p>Those writers are pathless and limited to predetermined <code>.ai-handoff</code> files. They are not a general editing API. Inspection-only mode uses <code>--no-handoff-writes</code> and exposes exactly four tools.</p><a class="button text" href="/RepoRelay/security/">See the exact boundary and limitations <span class="arrow" aria-hidden="true">→</span></a></div></div></div></section>
+
+    <section class="section compact" aria-labelledby="useful-title"><div class="container"><div class="section-head"><div><p class="section-kicker">Where this helps</p><h2 id="useful-title">Local review fills a different gap.</h2><p>RepoRelay is useful when the local working state is the thing you want reviewed, not necessarily the public repository state.</p></div></div><div class="card-grid"><article class="card"><p class="card-index">01 / before push</p><h3>Review work in progress.</h3><p>Ask for code review while changes still live locally, before a branch or pull request exists.</p></article><article class="card"><p class="card-index">02 / current state</p><h3>Use the repository on disk.</h3><p>Inspect generated configuration or local project files that you intentionally included in the approved root and that pass the sensitive-path rules.</p></article><article class="card"><p class="card-index">03 / paired workflow</p><h3>Keep implementation close.</h3><p>Let ChatGPT write a bounded task or review, while a local coding agent performs the authorized implementation with your own tools.</p></article></div></div></section>
+
+    <section class="section" aria-labelledby="start-title"><div class="container"><div class="cta-band"><p class="section-kicker">Get started</p><h2 id="start-title">The shortest safe explanation is also the setup order.</h2><p>Start RepoRelay for one path, run <code>reporelay audit</code>, configure the Secure MCP Tunnel, verify the seven-tool or four-tool surface, and test a sensitive path before normal use.</p><div class="cta-row"><a class="button" href="/RepoRelay/install/">Install RepoRelay <span class="arrow" aria-hidden="true">→</span></a><a class="button secondary" href="https://developers.openai.com/api/docs/guides/secure-mcp-tunnels">Open OpenAI tunnel guide <span class="arrow" aria-hidden="true">↗</span></a></div></div></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/faq/">FAQ</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/chatgpt-web.md">ChatGPT Web docs ↗</a><a href="https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt">ChatGPT app guide ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Built as a static GitHub Pages site</span></div></div></footer>
+</body>
+</html>

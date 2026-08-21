@@ -1,12 +1,256 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>RepoRelay</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RepoRelay - Give AI access to your repository, not your machine</title>
+  <meta name="description" content="RepoRelay is an open-source local MCP bridge for bounded ChatGPT access to one approved repository, with optional fixed handoff writers and no shell or general filesystem control.">
+  <meta name="theme-color" content="#07101f">
+  <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RepoRelay">
+  <meta property="og:title" content="RepoRelay - Give AI access to your repository, not your machine">
+  <meta property="og:description" content="A local-first MCP bridge for one approved repository: inspect, search, and optionally leave fixed handoff files without shell or general filesystem control.">
+  <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/">
+  <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RepoRelay - Give AI access to your repository, not your machine">
+  <meta name="twitter:description" content="A local-first MCP bridge for one approved repository.">
+  <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
+  <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
+  <script defer src="/RepoRelay/assets/js/site.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://lukie-81.github.io/RepoRelay/#website",
+        "url": "https://lukie-81.github.io/RepoRelay/",
+        "name": "RepoRelay",
+        "description": "A local-first MCP bridge for bounded review of one approved repository."
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://lukie-81.github.io/RepoRelay/#software",
+        "name": "RepoRelay",
+        "description": "An open-source local MCP bridge for tightly controlled repository review and structured coding-agent handoffs.",
+        "url": "https://lukie-81.github.io/RepoRelay/",
+        "codeRepository": "https://github.com/Lukie-81/RepoRelay",
+        "programmingLanguage": "TypeScript",
+        "license": "https://spdx.org/licenses/MIT.html",
+        "runtimePlatform": "Node.js"
+      }
+    ]
+  }
+  </script>
 </head>
-
 <body>
-    <h1>RepoRelay</h1>
-    <p>Give AI access to your repo — not your machine.</p>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header">
+    <div class="nav-wrap">
+      <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home">
+        <img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay">
+        <img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay">
+      </a>
+      <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation">
+        <a href="/RepoRelay/docs/">Docs</a>
+        <a href="/RepoRelay/security/">Security</a>
+        <a href="/RepoRelay/install/">Install</a>
+      </nav>
+      <div class="nav-controls">
+        <a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">&#8599;</span></a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero container" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">Give ChatGPT one repository, not your whole machine.</h1>
+        <p class="lede">RepoRelay gives ChatGPT a narrow, authenticated MCP surface for reading and searching one approved local repository, without shell access or machine-wide filesystem control.</p>
+        <div class="hero-actions">
+          <a class="button" href="/RepoRelay/install/">Install RepoRelay <span class="arrow" aria-hidden="true">→</span></a>
+          <a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">View the source <span class="arrow" aria-hidden="true">↗</span></a>
+        </div>
+        <p class="trust-line"><span>One approved root</span><span>Loopback only</span><span>No shell or Git</span></p>
+      </div>
+      <div class="hero-visual">
+        <div class="review-example" aria-label="Example RepoRelay review showing an approved repository and a blocked sensitive path">
+          <div class="review-example-header"><span>Example review</span><code>RepoRelay</code></div>
+          <div class="review-example-body">
+            <div class="review-row">
+              <div><span class="review-label">Request</span><code>open_workspace</code></div>
+              <span class="review-result allowed">Allowed</span>
+            </div>
+            <div class="review-root"><span class="review-label">Approved root</span><code>C:\Projects\my-app</code><small>One repository selected</small></div>
+            <div class="review-row">
+              <div><span class="review-label">Request</span><code>list_files</code></div>
+              <span class="review-result allowed">Allowed</span>
+            </div>
+            <pre class="review-files" aria-label="Top-level files">src/   docs/   README.md   .ai-handoff/</pre>
+            <div class="review-row">
+              <div><span class="review-label">Request</span><code>read_file(".env")</code></div>
+              <span class="review-result blocked">Blocked</span>
+            </div>
+            <p class="review-note">Sensitive paths stay outside the review surface.</p>
+          </div>
+        </div>
+        <p class="visual-caption">A small example of the boundary: inspect the approved project, while sensitive paths stay blocked.</p>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="what-title">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2 id="what-title">Install, audit, connect.</h2>
+            <p>Start one approved root, verify the local bridge, then connect ChatGPT through the separate tunnel layer.</p>
+          </div>
+          <a class="button text" href="/RepoRelay/chatgpt-local-repo/">How local access works <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+        <div class="split reverse">
+          <div class="terminal">
+            <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-label">PowerShell / quickstart</span></div>
+            <pre><span class="prompt">PS&gt;</span> npm install -g reporelay-mcp@latest
+<span class="prompt">PS&gt;</span> reporelay quickstart <span class="accent">"C:\Projects\my-app"</span>
+<span class="prompt">PS&gt;</span> reporelay audit <span class="accent">"C:\Projects\my-app"</span>
+<span class="comment"># In a second window</span>
+<span class="prompt">PS&gt;</span> reporelay tunnel setup
+<span class="prompt">PS&gt;</span> reporelay tunnel doctor
+<span class="prompt">PS&gt;</span> reporelay tunnel run</pre>
+          </div>
+          <div>
+            <ul>
+              <li>Use Node.js <code>&gt;=22.19 &lt;27</code>.</li>
+              <li>Quote the repository path on Windows.</li>
+              <li>Run <code>reporelay audit</code> before connecting.</li>
+            </ul>
+            <div class="inline-actions"><a class="button" href="/RepoRelay/install/">Open the setup guide</a><a class="button text" href="https://www.npmjs.com/package/reporelay-mcp">npm package <span class="arrow" aria-hidden="true">â†—</span></a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="works-title">
+      <div class="container">
+        <div class="split">
+          <div class="sticky-copy">
+            <h2 id="works-title">The useful surface is deliberately small.</h2>
+            <p>RepoRelay keeps review inside one approved root and exposes only the operations needed to inspect it.</p>
+            <a class="button text" href="/RepoRelay/chatgpt-local-repo/">Read the local repository guide <span class="arrow" aria-hidden="true">→</span></a>
+          </div>
+          <div>
+            <div class="security-summary" aria-label="RepoRelay security summary">
+              <article class="security-point"><span class="point-number">01</span><strong>One approved root</strong><p>Canonical containment rejects traversal and link-based escapes.</p></article>
+              <article class="security-point"><span class="point-number">02</span><strong>Read and search</strong><p>Four bounded inspection tools keep the review surface focused.</p></article>
+              <article class="security-point"><span class="point-number">03</span><strong>No machine control</strong><p>No shell, Git, process launch, arbitrary edits, or deletes.</p></article>
+              <article class="security-point"><span class="point-number">04</span><strong>Fixed destinations</strong><p>Optional writers target only three pre-existing handoff files.</p></article>
+            </div>
+            <p class="security-note">Application-level controls are not an operating-system sandbox. <a href="/RepoRelay/security/">Read the full security model</a>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="boundary-title">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h2 id="boundary-title">Transport carries requests. RepoRelay owns the boundary.</h2>
+          </div>
+          <a class="button text" href="/RepoRelay/security/">Read the full security model <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+        <div class="architecture">
+          <div class="flow" aria-label="RepoRelay connection flow">
+            <div class="flow-step"><strong>ChatGPT</strong><span>MCP client that calls available tools.</span></div>
+            <div class="flow-step"><strong>Secure MCP Tunnel</strong><span>Transport for reaching a private local server.</span></div>
+            <div class="flow-step"><strong>tunnel-client</strong><span>Local forwarder to the loopback endpoint.</span></div>
+            <div class="flow-step highlight"><strong>RepoRelay</strong><span>Authenticated server and application boundary.</span></div>
+            <div class="flow-step"><strong>Repository</strong><span>One approved local directory.</span></div>
+          </div>
+          <ul class="pills" aria-label="RepoRelay tool surface">
+            <li class="pill good">open_workspace</li>
+            <li class="pill good">list_files</li>
+            <li class="pill good">read_file</li>
+            <li class="pill good">search_files</li>
+            <li class="pill warn">3 fixed handoff writers</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="setup-title" hidden>
+      <div class="container">
+        <div class="split reverse">
+          <div class="prose-panel">
+            <h3>Three layers, one decision point</h3>
+            <p>ChatGPT calls MCP tools. The tunnel carries the request. RepoRelay decides whether the requested path and operation are allowed.</p>
+          </div>
+          <div>
+            <p class="section-kicker">Review, then implement locally</p>
+            <h2 id="setup-title">Handoff is not execution.</h2>
+            <p>With handoff writes enabled, ChatGPT can leave a task, review, and state update in fixed <code>.ai-handoff</code> files. A local coding agent owns the implementation and <code>RESULT.md</code>.</p>
+            <div class="inline-actions"><a class="button" href="/RepoRelay/install/">Open the setup guide <span class="arrow" aria-hidden="true">→</span></a><a class="button text" href="https://www.npmjs.com/package/reporelay-mcp">npm package <span class="arrow" aria-hidden="true">↗</span></a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="handoff-title" hidden>
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Source and handoff</p>
+            <h2 id="handoff-title">Keep review context separate from execution.</h2>
+            <p>ChatGPT can inspect, search, and optionally write three fixed handoff files. Your local agent remains the implementation authority.</p>
+          </div>
+          <a class="button text" href="/RepoRelay/docs/">Explore the documentation hub <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+        <div class="feature-grid">
+          <article class="feature"><h3>ChatGPT reviews</h3><p>Read the approved repository, search for evidence, and leave a bounded task or review.</p></article>
+          <article class="feature"><h3>Your local agent implements</h3><p>RepoRelay never launches Codex, Claude, shell commands, or Git.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="faq-preview-title" hidden>
+      <div class="container">
+        <div class="section-head">
+          <div><p class="section-kicker">Answers before installation</p><h2 id="faq-preview-title">Start with the questions developers actually ask.</h2></div>
+          <a class="button text" href="/RepoRelay/faq/">See all FAQ answers <span class="arrow" aria-hidden="true">→</span></a>
+        </div>
+        <div class="link-grid">
+          <a class="link-card" href="/RepoRelay/chatgpt-local-repo/"><span class="link-label">01 / access</span><h3>How can ChatGPT access a local repository?</h3><p>Understand the roles of MCP, the tunnel, and RepoRelay.</p></a>
+          <a class="link-card" href="/RepoRelay/security/"><span class="link-label">02 / security</span><h3>Does RepoRelay give ChatGPT shell access?</h3><p>No. See the exact tool surface and documented limitations.</p></a>
+          <a class="link-card" href="/RepoRelay/github-vs-local/"><span class="link-label">03 / workflow</span><h3>When should I use GitHub instead?</h3><p>Compare a pushed source of truth with bounded local review.</p></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="open-source-title">
+      <div class="container">
+        <div class="cta-band">
+          <h2 id="open-source-title">Read the implementation. Make your own call.</h2>
+          <p>RepoRelay is an independent MIT-licensed project. Open the source, security policy, issues, and package metadata before you use it.</p>
+          <div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay">Open RepoRelay on GitHub <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">Read SECURITY.md <span class="arrow" aria-hidden="true">↗</span></a></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div>
+        <div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/security/">Security boundary</a><a href="/RepoRelay/faq/">FAQ</a></div>
+        <div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md">README.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a><a href="https://www.npmjs.com/package/reporelay-mcp">npm package ↗</a></div>
+      </div>
+      <div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Built as a static GitHub Pages site</span></div>
+    </div>
+  </footer>
 </body>
 </html>

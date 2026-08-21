@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RepoRelay FAQ - MCP, ChatGPT local repo access, and security</title>
+  <meta name="description" content="Direct answers about RepoRelay: MCP, ChatGPT local repository access, shell and Git permissions, handoff writers, inspection-only mode, audit, platforms, and Node.js support.">
+  <meta name="theme-color" content="#07101f">
+  <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/faq/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RepoRelay">
+  <meta property="og:title" content="RepoRelay FAQ - MCP, ChatGPT local repo access, and security">
+  <meta property="og:description" content="Direct, source-checked answers about RepoRelay's tool surface, local access, security boundary, and setup.">
+  <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/faq/">
+  <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RepoRelay FAQ - MCP, ChatGPT local repo access, and security">
+  <meta name="twitter:description" content="Direct, source-checked answers about RepoRelay's tool surface, local access, security boundary, and setup.">
+  <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
+  <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
+  <script defer src="/RepoRelay/assets/js/site.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {"@type":"Question","name":"What is RepoRelay?","acceptedAnswer":{"@type":"Answer","text":"RepoRelay is an open-source local MCP bridge for tightly controlled repository review and structured coding-agent handoffs. It exposes one explicitly approved local repository through an authenticated loopback server."}},
+      {"@type":"Question","name":"Is RepoRelay open source?","acceptedAnswer":{"@type":"Answer","text":"Yes. RepoRelay is published under the MIT License in the public GitHub repository at https://github.com/Lukie-81/RepoRelay."}},
+      {"@type":"Question","name":"What is MCP?","acceptedAnswer":{"@type":"Answer","text":"MCP, or Model Context Protocol, is the protocol used for an AI client such as ChatGPT to discover and call tools exposed by a server. RepoRelay is the local MCP server and application boundary."}},
+      {"@type":"Question","name":"Can ChatGPT access my entire computer through RepoRelay?","acceptedAnswer":{"@type":"Answer","text":"No. RepoRelay approves exactly one existing canonical repository directory at a time and does not expose general filesystem, shell, process, Git, or arbitrary mutation tools."}},
+      {"@type":"Question","name":"Does RepoRelay provide shell access?","acceptedAnswer":{"@type":"Answer","text":"No. The public review server does not register shell, PowerShell, process-launch, or local-agent execution tools."}},
+      {"@type":"Question","name":"Can RepoRelay run Git commands?","acceptedAnswer":{"@type":"Answer","text":"No. Git is not an exposed RepoRelay tool. Git operations remain local operator or coding-agent actions."}},
+      {"@type":"Question","name":"Can ChatGPT modify my source code through RepoRelay?","acceptedAnswer":{"@type":"Answer","text":"ChatGPT cannot arbitrarily edit source files. When handoff writes are enabled, it can write only three predetermined handoff targets: NEXT_TASK.md, REVIEW.md, and STATE.json under .ai-handoff."}},
+      {"@type":"Question","name":"What are the handoff writers?","acceptedAnswer":{"@type":"Answer","text":"The three fixed writers are write_next_task, write_review, and update_handoff_state. They are pathless and can replace only pre-existing .ai-handoff/NEXT_TASK.md, .ai-handoff/REVIEW.md, and .ai-handoff/STATE.json. RESULT.md remains implementer-owned."}},
+      {"@type":"Question","name":"What is inspection-only mode?","acceptedAnswer":{"@type":"Answer","text":"Run quickstart with --no-handoff-writes. RepoRelay then exposes exactly open_workspace, list_files, read_file, and search_files, does not initialize .ai-handoff, and does not create or modify AGENTS.md."}},
+      {"@type":"Question","name":"Can RepoRelay read .env?","acceptedAnswer":{"@type":"Answer","text":"Sensitive-path policy is intended to block .env and other credential locations. This is defense in depth, not a complete secret scanner, so do not approve a repository containing credentials the reviewer should not receive."}},
+      {"@type":"Question","name":"Can RepoRelay access files outside the approved repository?","acceptedAnswer":{"@type":"Answer","text":"The containment checks reject traversal, absolute escapes, symlink or junction or reparse-point escapes, and hard-linked files outside the canonical root. RepoRelay is still not an operating-system sandbox against malicious same-user software."}},
+      {"@type":"Question","name":"How does RepoRelay connect to ChatGPT Web?","acceptedAnswer":{"@type":"Answer","text":"ChatGPT Web connects through OpenAI's Secure MCP Tunnel to the local tunnel-client, which forwards to RepoRelay's authenticated loopback MCP endpoint. ChatGPT Web cannot connect directly to the local loopback URL."}},
+      {"@type":"Question","name":"What is OpenAI Secure MCP Tunnel?","acceptedAnswer":{"@type":"Answer","text":"It is the external connectivity layer used to reach an eligible private local MCP server from ChatGPT Web. It is separate from RepoRelay, which remains the local MCP server and security boundary."}},
+      {"@type":"Question","name":"Does RepoRelay run Codex or Claude?","acceptedAnswer":{"@type":"Answer","text":"No. Codex, Claude, and other coding agents are separate local applications. RepoRelay can provide fixed handoff files for coordination but does not launch or orchestrate an agent."}},
+      {"@type":"Question","name":"What does reporelay audit verify?","acceptedAnswer":{"@type":"Answer","text":"The audit validates the canonical root, loopback and authentication configuration, a temporary authenticated listener, the actual MCP tool surface, and disposable fixtures for sensitive paths, traversal, outside-root access, links, hard links, generic writes, fixed handoffs, and protected result files. It does not test ChatGPT Web or an external tunnel."}},
+      {"@type":"Question","name":"Which operating systems are supported?","acceptedAnswer":{"@type":"Answer","text":"The README states that the quickstart works on Windows, macOS, and Linux. Windows 10/11 is the fully validated lifecycle and operational platform, including the PowerShell scripts and tunnel-managed runbook."}},
+      {"@type":"Question","name":"Which Node.js versions are supported?","acceptedAnswer":{"@type":"Answer","text":"RepoRelay requires Node.js >=22.19 and <27. npm is included with Node.js."}},
+      {"@type":"Question","name":"Is RepoRelay free and open source?","acceptedAnswer":{"@type":"Answer","text":"The RepoRelay project is MIT-licensed and published as open source. OpenAI Secure MCP Tunnel availability, permissions, and any account or organization requirements are separate from RepoRelay's license."}}
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header"><div class="nav-wrap">
+    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a>
+    <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation"><a href="/RepoRelay/docs/">Docs</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/install/">Install</a></nav>
+    <div class="nav-controls"><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">↗</span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button><button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button></div>
+  </div></header>
+
+  <main id="main-content">
+    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">FAQ</span></nav><p class="eyebrow">Direct answers</p><h1>RepoRelay questions, answered without the marketing fog.</h1><p class="lede">These answers summarize the current README, security policy, and repository documentation. For exact commands and implementation details, follow the source links in the <a href="/RepoRelay/docs/">documentation hub</a>.</p></section>
+
+    <section class="section compact" aria-labelledby="faq-title"><div class="container"><div class="faq-list" id="faq-title">
+      <details open><summary>What is RepoRelay?</summary><div><p>RepoRelay is an open-source local MCP bridge for tightly controlled repository review and structured coding-agent handoffs. It exposes one explicitly approved local repository through an authenticated loopback server.</p></div></details>
+      <details><summary>Is RepoRelay open source?</summary><div><p>Yes. RepoRelay is published under the MIT License in the <a href="https://github.com/Lukie-81/RepoRelay">public GitHub repository</a>.</p></div></details>
+      <details><summary>What is MCP?</summary><div><p>MCP, or Model Context Protocol, is the protocol used for an AI client such as ChatGPT to discover and call tools exposed by a server. RepoRelay is the local MCP server and application boundary; MCP itself is not the security boundary.</p></div></details>
+      <details><summary>Can ChatGPT access my entire computer through RepoRelay?</summary><div><p>No. RepoRelay approves exactly one existing canonical repository directory at a time and does not expose general filesystem, shell, process, Git, or arbitrary mutation tools.</p></div></details>
+      <details><summary>Does RepoRelay provide shell access?</summary><div><p>No. The public review server does not register shell, PowerShell, process-launch, or local-agent execution tools.</p></div></details>
+      <details><summary>Can RepoRelay run Git commands?</summary><div><p>No. Git is not an exposed RepoRelay tool. Git operations remain local operator or coding-agent actions.</p></div></details>
+      <details><summary>Can ChatGPT modify my source code through RepoRelay?</summary><div><p>ChatGPT cannot arbitrarily edit source files. When handoff writes are enabled, it can write only three predetermined handoff targets: <code>NEXT_TASK.md</code>, <code>REVIEW.md</code>, and <code>STATE.json</code> under <code>.ai-handoff</code>.</p></div></details>
+      <details><summary>What are the handoff writers?</summary><div><p>The three fixed writers are <code>write_next_task</code>, <code>write_review</code>, and <code>update_handoff_state</code>. They are pathless and can replace only pre-existing <code>.ai-handoff/NEXT_TASK.md</code>, <code>.ai-handoff/REVIEW.md</code>, and <code>.ai-handoff/STATE.json</code>. <code>RESULT.md</code> remains implementer-owned.</p></div></details>
+      <details><summary>What is inspection-only mode?</summary><div><p>Run quickstart with <code>--no-handoff-writes</code>. RepoRelay then exposes exactly <code>open_workspace</code>, <code>list_files</code>, <code>read_file</code>, and <code>search_files</code>, does not initialize <code>.ai-handoff</code>, and does not create or modify <code>AGENTS.md</code>.</p></div></details>
+      <details><summary>Can RepoRelay read <code>.env</code>?</summary><div><p>Sensitive-path policy is intended to block <code>.env</code> and other credential locations. This is defense in depth, not a complete secret scanner, so do not approve a repository containing credentials the reviewer should not receive.</p></div></details>
+      <details><summary>Can RepoRelay access files outside the approved repository?</summary><div><p>The containment checks reject traversal, absolute escapes, symlink, junction, or reparse-point escapes, and hard-linked files outside the canonical root. RepoRelay is still not an operating-system sandbox against malicious same-user software.</p></div></details>
+      <details><summary>How does RepoRelay connect to ChatGPT Web?</summary><div><p>ChatGPT Web connects through <a href="https://developers.openai.com/api/docs/guides/secure-mcp-tunnels">OpenAI's Secure MCP Tunnel</a> to the local <code>tunnel-client</code>, which forwards to RepoRelay's authenticated loopback MCP endpoint. ChatGPT Web cannot connect directly to the local loopback URL.</p></div></details>
+      <details><summary>What is OpenAI Secure MCP Tunnel?</summary><div><p>It is the external connectivity layer used to reach an eligible private local MCP server from ChatGPT Web. It is separate from RepoRelay, which remains the local MCP server and security boundary.</p></div></details>
+      <details><summary>Does RepoRelay run Codex or Claude?</summary><div><p>No. Codex, Claude, and other coding agents are separate local applications. RepoRelay can provide fixed handoff files for coordination but does not launch or orchestrate an agent.</p></div></details>
+      <details><summary>What does <code>reporelay audit</code> verify?</summary><div><p>The audit validates the canonical root, loopback and authentication configuration, a temporary authenticated listener, the actual MCP tool surface, and disposable fixtures for sensitive paths, traversal, outside-root access, links, hard links, generic writes, fixed handoffs, and protected result files. It does not test ChatGPT Web or an external tunnel.</p></div></details>
+      <details><summary>Which operating systems are supported?</summary><div><p>The README states that the quickstart works on Windows, macOS, and Linux. Windows 10/11 is the fully validated lifecycle and operational platform, including the PowerShell scripts and tunnel-managed runbook.</p></div></details>
+      <details><summary>Which Node.js versions are supported?</summary><div><p>RepoRelay requires Node.js <code>&gt;=22.19</code> and <code>&lt;27</code>. npm is included with Node.js.</p></div></details>
+      <details><summary>Is RepoRelay free and open source?</summary><div><p>The RepoRelay project is MIT-licensed and published as open source. OpenAI Secure MCP Tunnel availability, permissions, and any account or organization requirements are separate from RepoRelay's license.</p></div></details>
+    </div></div></section>
+
+    <section class="section compact"><div class="container"><div class="cta-band"><p class="section-kicker">Still deciding?</p><h2>Read the boundary before you connect.</h2><p>Security-sensitive setup is easier to evaluate when the transport layer and the local tool server are described separately.</p><div class="cta-row"><a class="button" href="/RepoRelay/security/">Read the security page <span class="arrow" aria-hidden="true">→</span></a><a class="button secondary" href="/RepoRelay/install/">Start installation</a></div></div></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/security/">Security</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md">README.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a><a href="https://www.npmjs.com/package/reporelay-mcp">npm package ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Questions should resolve to source, not slogans</span></div></div></footer>
+</body>
+</html>

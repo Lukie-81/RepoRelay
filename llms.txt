@@ -1,0 +1,32 @@
+# RepoRelay
+
+> RepoRelay is an open-source local MCP bridge that gives an AI reviewer bounded access to one explicitly approved local repository, without exposing shell, Git, process execution, or general filesystem control.
+
+## Primary pages
+
+- [Home](https://lukie-81.github.io/RepoRelay/): product overview, architecture, tool surface, and quick setup.
+- [Install](https://lukie-81.github.io/RepoRelay/install/): install, quickstart, audit, Secure MCP Tunnel, and ChatGPT app sequence.
+- [ChatGPT + local repository](https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/): direct explanation of how local repository access works.
+- [Security](https://lukie-81.github.io/RepoRelay/security/): one-root containment, authentication, sensitive paths, fixed handoffs, audit, and limitations.
+- [GitHub vs local](https://lukie-81.github.io/RepoRelay/github-vs-local/): balanced comparison of GitHub-based and local repository access.
+- [FAQ](https://lukie-81.github.io/RepoRelay/faq/): concise factual answers about MCP, tools, setup, and support.
+
+## Canonical source
+
+- [RepoRelay GitHub repository](https://github.com/Lukie-81/RepoRelay)
+- [README.md](https://github.com/Lukie-81/RepoRelay/blob/main/README.md)
+- [SECURITY.md](https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md)
+- [ChatGPT Web connection documentation](https://github.com/Lukie-81/RepoRelay/blob/main/docs/chatgpt-web.md)
+
+## Terminology
+
+- ChatGPT Web is the MCP client/reviewer.
+- MCP is the tool-calling protocol.
+- OpenAI Secure MCP Tunnel is the external connectivity layer.
+- `tunnel-client` is the local tunnel forwarder.
+- RepoRelay is the local MCP server and application security boundary.
+- The approved repository is the one local directory in scope.
+
+## Important limits
+
+The normal CLI quickstart exposes four inspection tools and three fixed handoff writers. `--no-handoff-writes` exposes only the four inspection tools. RepoRelay is not an operating-system sandbox and does not claim to discover every secret in an arbitrary repository. Check the current repository source and `SECURITY.md` before relying on a claim.

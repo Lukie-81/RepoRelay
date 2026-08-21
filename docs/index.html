@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RepoRelay documentation - install, security, setup, handoff</title>
+  <meta name="description" content="RepoRelay documentation hub for installation, ChatGPT Web setup, security, configuration, the handoff workflow, auditing, and troubleshooting.">
+  <meta name="theme-color" content="#07101f">
+  <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/docs/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="RepoRelay">
+  <meta property="og:title" content="RepoRelay documentation - install, security, setup, handoff">
+  <meta property="og:description" content="A compact documentation hub linking to the site guides and canonical repository documents.">
+  <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/docs/">
+  <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RepoRelay documentation - install, security, setup, handoff">
+  <meta name="twitter:description" content="A compact documentation hub linking to the site guides and canonical repository documents.">
+  <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
+  <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
+  <script defer src="/RepoRelay/assets/js/site.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
+      {"@type": "ListItem", "position": 2, "name": "Documentation", "item": "https://lukie-81.github.io/RepoRelay/docs/"}
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header"><div class="nav-wrap">
+    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a>
+    <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation"><a href="/RepoRelay/docs/" aria-current="page">Docs</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/install/">Install</a></nav>
+    <div class="nav-controls"><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">↗</span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button><button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button></div>
+  </div></header>
+
+  <main id="main-content">
+    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Docs</span></nav><p class="eyebrow">Documentation hub</p><h1>Start with the guide that matches your question.</h1><p class="lede">This site summarizes the product and its boundaries. Detailed implementation and operational documentation remains in the main RepoRelay repository, linked below as the canonical source.</p></section>
+
+    <section class="section compact" aria-labelledby="start-docs-title"><div class="container"><div class="section-head"><div><p class="section-kicker">Start here</p><h2 id="start-docs-title">The shortest paths through RepoRelay.</h2></div></div><div class="link-grid"><a class="link-card" href="/RepoRelay/install/"><span class="link-label">01 / install</span><h3>Install and connect</h3><p>npm install, quickstart, audit, tunnel setup, doctor, run, and ChatGPT app verification.</p></a><a class="link-card" href="/RepoRelay/chatgpt-local-repo/"><span class="link-label">02 / concept</span><h3>ChatGPT + local repository</h3><p>Understand MCP, Secure MCP Tunnel, tunnel-client, RepoRelay, and the one-root request path.</p></a><a class="link-card" href="/RepoRelay/security/"><span class="link-label">03 / boundary</span><h3>Security model</h3><p>Review containment, authentication, sensitive paths, fixed writers, audit, and limitations.</p></a></div></div></section>
+
+    <section class="section" aria-labelledby="repo-docs-title"><div class="container"><div class="section-head"><div><p class="section-kicker">Canonical repository documents</p><h2 id="repo-docs-title">Keep the implementation close at hand.</h2><p>These links go to the current <code>main</code> branch on GitHub. If a command, UI label, or security claim changes, the repository documentation is the place to re-check.</p></div></div><div class="link-grid"><a class="link-card" href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md"><span class="link-label">README.md ↗</span><h3>Project overview and quick setup</h3><p>Product positioning, requirements, CLI commands, daily use, switching repositories, troubleshooting, and limitations.</p></a><a class="link-card" href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md"><span class="link-label">SECURITY.md ↗</span><h3>Security policy</h3><p>Authoritative security boundary, enforced protections, audit behavior, limitations, and reporting guidance.</p></a><a class="link-card" href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/chatgpt-web.md"><span class="link-label">docs/chatgpt-web.md ↗</span><h3>ChatGPT Web connection</h3><p>Secure MCP Tunnel, tunnel-client setup, runtime credentials, doctor, and ChatGPT custom MCP app flow.</p></a><a class="link-card" href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/setup.md"><span class="link-label">docs/setup.md ↗</span><h3>Setup notes</h3><p>Install from a checkout, quickstart modes, audit, local reviewers, and the manual Windows lifecycle pointer.</p></a><a class="link-card" href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/configuration.md"><span class="link-label">docs/configuration.md ↗</span><h3>Configuration</h3><p>Environment variables, bridge authentication, ports, logging, handoff mode, and protected configuration.</p></a><a class="link-card" href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/handoff-cycle.md"><span class="link-label">docs/handoff-cycle.md ↗</span><h3>Handoff cycle</h3><p>How the reviewer, local implementer, result file, review file, and state file coordinate without RepoRelay executing an agent.</p></a></div></div></section>
+
+    <section class="section compact" aria-labelledby="operations-title"><div class="container"><div class="feature-grid"><article class="feature"><h3 id="operations-title">Troubleshooting and operations</h3><p>For connection problems, start with <code>reporelay tunnel doctor</code> and the <a href="/RepoRelay/faq/">FAQ</a>. For managed Windows lifecycle scripts and scheduled-task operations, read <a href="https://github.com/Lukie-81/RepoRelay/blob/main/OPERATIONS.md">OPERATIONS.md ↗</a>.</p></article><article class="feature"><h3>Audit and tests</h3><p><code>reporelay audit &lt;repository&gt;</code> verifies a temporary real MCP surface and disposable adversarial fixtures. The repository's focused tests cover configuration, containment, tools, authentication, and audit behavior. See <a href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/security.md">docs/security.md ↗</a>.</p></article></div></div></section>
+
+    <section class="section compact"><div class="container"><div class="cta-band"><p class="section-kicker">Need the implementation?</p><h2>Go to the repository.</h2><p>RepoRelay is an open-source MIT-licensed project. The website is a guide; the code, tests, and security policy are the authority.</p><div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay">Open GitHub repository <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="/RepoRelay/faq/">Read the FAQ</a></div></div></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/security/">Security</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md">README.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Canonical docs live in the repository</span></div></div></footer>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RepoRelay security boundary - loopback, containment, fixed handoffs</title>
+  <meta name="description" content="Read RepoRelay's documented security boundary: one canonical root, loopback authentication, traversal and link defenses, sensitive-path handling, bounded operations, fixed handoff targets, audit, and limitations.">
+  <meta name="theme-color" content="#07101f">
+  <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/security/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="RepoRelay">
+  <meta property="og:title" content="RepoRelay security boundary - loopback, containment, fixed handoffs">
+  <meta property="og:description" content="A precise summary of RepoRelay's enforced application boundary and its limitations.">
+  <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/security/">
+  <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="RepoRelay security boundary - loopback, containment, fixed handoffs">
+  <meta name="twitter:description" content="A precise summary of RepoRelay's enforced application boundary and its limitations.">
+  <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-hero.png">
+  <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
+  <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
+  <script defer src="/RepoRelay/assets/js/site.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
+      {"@type": "ListItem", "position": 2, "name": "Security", "item": "https://lukie-81.github.io/RepoRelay/security/"}
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header"><div class="nav-wrap">
+    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a>
+    <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation"><a href="/RepoRelay/docs/">Docs</a><a href="/RepoRelay/security/" aria-current="page">Security</a><a href="/RepoRelay/install/">Install</a></nav>
+    <div class="nav-controls"><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">↗</span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button><button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button></div>
+  </div></header>
+
+  <main id="main-content">
+    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Security</span></nav><p class="eyebrow">Read the source of truth</p><h1>A narrow application boundary, with explicit limits.</h1><p class="lede">RepoRelay is an authenticated, loopback-only MCP bridge for one explicitly approved repository. Its controls limit the tools and paths exposed to the reviewer; they do not turn the process into an operating-system sandbox.</p><div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">Read SECURITY.md on GitHub <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="/RepoRelay/install/">See the audit-first setup</a></div></section>
+
+    <section class="section compact" aria-labelledby="surface-title"><div class="container"><div class="section-head"><div><p class="section-kicker">Tool surface</p><h2 id="surface-title">The default is small enough to inspect.</h2><p>The normal CLI quickstart exposes seven tools. The general server profile and optional inspection-only quickstart expose only the four read/search tools.</p></div></div><div class="feature-grid"><article class="feature"><h3>Inspection tools</h3><ul class="pills"><li class="pill good">open_workspace</li><li class="pill good">list_files</li><li class="pill good">read_file</li><li class="pill good">search_files</li></ul><p class="small">These tools read or search eligible content inside the opened repository. Reads and searches are bounded.</p></article><article class="feature"><h3>Fixed handoff writers</h3><ul class="pills"><li class="pill warn">write_next_task</li><li class="pill warn">write_review</li><li class="pill warn">update_handoff_state</li></ul><p class="small">When enabled, they can replace only pre-existing <code>.ai-handoff/NEXT_TASK.md</code>, <code>.ai-handoff/REVIEW.md</code>, and <code>.ai-handoff/STATE.json</code>. <code>RESULT.md</code> remains implementer-owned.</p></article></div></div></section>
+
+    <section class="section" aria-labelledby="enforced-title"><div class="container"><div class="section-head"><div><p class="section-kicker">Enforced protections</p><h2 id="enforced-title">The boundary has several independent checks.</h2></div></div><div class="prose-panel"><table class="boundary-table"><thead><tr><th>Control</th><th>What RepoRelay documents and enforces</th></tr></thead><tbody><tr><td>Listener</td><td><code>REPORELAY_HOST</code> must be <code>127.0.0.1</code>. The review bridge is loopback-only.</td></tr><tr><td>Approved root</td><td><code>REPORELAY_ALLOWED_ROOTS</code> must name exactly one existing canonical directory. Drive roots, the user home, and its ancestors are rejected.</td></tr><tr><td>Host and request authentication</td><td>Host allowlists are explicit and wildcard-free. The required <code>X-RepoRelay-Bridge-Secret</code> header rejects missing, incorrect, and duplicate values before request-body parsing. Secret comparison uses fixed-length SHA-256 digests with constant-time comparison.</td></tr><tr><td>Containment</td><td>Traversal, absolute escapes, symlink/junction/reparse-point escapes, and hard-linked files are rejected. Open-file identity is rechecked around reads and fixed-target writes.</td></tr><tr><td>Sensitive paths</td><td>Credential and private-key paths, <code>.env</code>, VCS metadata, and other sensitive locations are blocked as defense in depth. Do not approve a repository containing credentials the reviewer should not receive.</td></tr><tr><td>Bounds</td><td>Reads, searches, results, and handoff documents have bounded sizes. The server does not offer caller-selected arbitrary write destinations.</td></tr><tr><td>Absent capabilities</td><td>No shell, PowerShell, Git, process launch, arbitrary file creation or edits, patches, deletes, artifacts, worktrees, local-agent execution, skills, subagents, OAuth, database persistence, or UI workspace-management tools are part of the public review server.</td></tr></tbody></table></div></div></section>
+
+    <section class="section" aria-labelledby="audit-title"><div class="container"><div class="split"><div class="sticky-copy"><p class="section-kicker">Executable verification</p><h2 id="audit-title"><code>reporelay audit</code> checks the live local surface.</h2><p>It is a verification command, not a status badge.</p></div><div><div class="terminal"><div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-label">local verification</span></div><pre><span class="prompt">PS&gt;</span> reporelay audit <span class="accent">"C:\Projects\my-app"</span>
+<span class="prompt">PS&gt;</span> reporelay audit <span class="accent">"C:\Projects\my-app"</span> --json
+
+RESULT: PASS</pre></div><p>The audit validates the canonical root, loopback/authentication configuration, starts a temporary authenticated loopback listener, checks missing and incorrect credentials, discovers the actual MCP tools, and rejects unexpected or dangerous capabilities. It also exercises disposable fixtures for sensitive paths, traversal, outside-root access, links, hard links, generic writes, fixed handoffs, and protected result files.</p><p class="small">The audit does not inspect or operate ChatGPT Web, an external tunnel, or a public deployment. It does not modify the approved repository.</p></div></div></div></section>
+
+    <section class="section compact" aria-labelledby="mode-title"><div class="container"><div class="split reverse"><div class="prose-panel"><h3>Inspection-only mode</h3><p>Use <code>reporelay quickstart "..." --no-handoff-writes</code> when you want exactly four tools, no <code>.ai-handoff</code> initialization, and no creation or modification of <code>AGENTS.md</code>. Run the audit with the same flag.</p></div><div><p class="section-kicker">Least privilege is a choice</p><h2 id="mode-title">Choose the smaller surface when handoff is not needed.</h2><p>The normal quickstart is seven tools because the handoff workflow is part of RepoRelay's documented use case. It is still optional.</p></div></div></div></section>
+
+    <section class="section" aria-labelledby="limits-title"><div class="container"><div class="section-head"><div><p class="section-kicker">Limitations</p><h2 id="limits-title">What these controls do not promise.</h2></div></div><div class="feature-grid"><article class="feature"><h3>Not an OS sandbox</h3><p>RepoRelay does not sandbox malicious software already running as the same local user. Same-user races are narrowed by canonical and handle identity checks but cannot be eliminated.</p></article><article class="feature"><h3>Not a complete secret scanner</h3><p>The sensitive-path list is defense in depth, not a guarantee that every secret in every repository will be found. Review what you approve.</p></article><article class="feature"><h3>The tunnel is separate</h3><p>An external HTTPS tunnel is another security boundary. It must be authenticated, loopback-restricted, and monitored independently of RepoRelay.</p></article><article class="feature"><h3>Public documentation is not a release attestation</h3><p>Read the current source, tests, and <a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">security policy</a> for the version you run. Do not infer live ChatGPT or tunnel acceptance from this static site.</p></article></div></div></section>
+
+    <section class="section compact"><div class="container"><div class="callout warning"><strong>Operator rule:</strong> Never place bridge secrets, tunnel keys, personal paths, or runtime logs in source, examples, issues, or handoff files. Do not connect a repository containing credentials the reviewer should not receive.</div></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/faq/">FAQ</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/security.md">Security notes ↗</a><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Security claims should be checked against the current source</span></div></div></footer>
+</body>
+</html>
