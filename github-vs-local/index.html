@@ -3,20 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GitHub access vs local repository access | RepoRelay</title>
-  <meta name="description" content="Compare GitHub review with RepoRelay local review for uncommitted work, source-of-truth trade-offs, setup, and security boundaries.">
+  <title>ChatGPT GitHub vs Local Repository Access via MCP | RepoRelay</title>
+  <meta name="description" content="Compare ChatGPT review through GitHub with RepoRelay local MCP review for uncommitted work, source-of-truth trade-offs, setup, and security boundaries.">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
   <meta name="theme-color" content="#07101f">
   <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/github-vs-local/">
+  <meta property="og:locale" content="en_US">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="RepoRelay">
-  <meta property="og:title" content="GitHub access vs local repository access | RepoRelay">
-  <meta property="og:description" content="A balanced comparison of GitHub review and one explicitly approved local working tree through RepoRelay, without implying either workflow is universally safer.">
+  <meta property="og:title" content="ChatGPT GitHub vs Local Repository Access via MCP | RepoRelay">
+  <meta property="og:description" content="A balanced comparison of ChatGPT review through GitHub and one explicitly approved local repository through RepoRelay's MCP bridge.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/github-vs-local/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
+  <meta property="og:image:width" content="1000">
+  <meta property="og:image:height" content="522">
   <meta property="og:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="GitHub access vs local repository access | RepoRelay">
-  <meta name="twitter:description" content="A balanced comparison of reviewing code on GitHub and reviewing one explicitly approved local repository through RepoRelay.">
+  <meta name="twitter:title" content="ChatGPT GitHub vs Local Repository Access via MCP | RepoRelay">
+  <meta name="twitter:description" content="A balanced comparison of ChatGPT GitHub review and local repository review through MCP.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
   <meta name="twitter:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
@@ -30,10 +34,11 @@
         "@type": "WebPage",
         "@id": "https://lukie-81.github.io/RepoRelay/github-vs-local/#webpage",
         "url": "https://lukie-81.github.io/RepoRelay/github-vs-local/",
-        "name": "GitHub access vs local repository access | RepoRelay",
-        "description": "Compare GitHub-based code access with RepoRelay's bounded local repository access, including uncommitted work, source-of-truth trade-offs, setup, and security boundaries.",
+        "name": "ChatGPT GitHub vs Local Repository Access via MCP | RepoRelay",
+        "description": "Compare ChatGPT review through GitHub with RepoRelay local MCP review for uncommitted work, source-of-truth trade-offs, setup, and security boundaries.",
         "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
         "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
+        "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"},
         "breadcrumb": {"@id": "https://lukie-81.github.io/RepoRelay/github-vs-local/#breadcrumb"}
       },
       {
@@ -57,7 +62,7 @@
   </div></header>
 
   <main id="main-content">
-    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">GitHub vs local</span></nav><p class="eyebrow">Two valid sources of truth</p><h1>GitHub access and local access solve different problems.</h1><p class="lede">GitHub is often the right place for AI-assisted code review: it is shareable, versioned, and already part of a collaborative workflow. RepoRelay is for the case where you specifically want ChatGPT to inspect one approved repository on the machine in front of you.</p></section>
+    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">GitHub vs local</span></nav><p class="eyebrow">Two valid sources of truth</p><h1>ChatGPT GitHub access and local MCP access solve different problems.</h1><p class="lede">GitHub is often the right place for AI-assisted code review: it is shareable, versioned, and already part of a collaborative workflow. RepoRelay is for the case where you specifically want ChatGPT Web to inspect one approved local repository through MCP before the work is published.</p></section>
 
     <section class="section compact" aria-labelledby="why-local-title">
       <div class="container">

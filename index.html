@@ -4,20 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="google-site-verification" content="8tWJp17Pwsb_fAoSwrsLHplWNqaLlo0EQ-5EE3GJqBk" />
-  <title>RepoRelay MCP - Bounded ChatGPT Access to One Local Repository</title>
-  <meta name="description" content="RepoRelay lets ChatGPT inspect and search one approved local repository through MCP, without shell, Git, machine-wide filesystem access, or arbitrary writes.">
+  <title>RepoRelay - Secure ChatGPT Web MCP Access to One Local Repository</title>
+  <meta name="description" content="RepoRelay is a secure local MCP bridge that lets ChatGPT Web inspect and search one approved local repository without shell, Git, or machine-wide filesystem access.">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
   <meta name="theme-color" content="#07101f">
   <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/">
+  <link rel="alternate" type="text/plain" href="https://lukie-81.github.io/RepoRelay/llms.txt" title="RepoRelay machine-readable project map">
   <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
   <meta property="og:site_name" content="RepoRelay">
-  <meta property="og:title" content="RepoRelay MCP - One approved local repository for ChatGPT review">
-  <meta property="og:description" content="Inspect and search one approved local repository through a bounded MCP interface, with no shell, Git, machine-wide filesystem, or arbitrary source-file writes.">
+  <meta property="og:title" content="RepoRelay - Secure ChatGPT Web MCP Access to One Local Repository">
+  <meta property="og:description" content="Let ChatGPT Web inspect and search one approved local repository through a bounded MCP bridge without shell, Git, or machine-wide filesystem access.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
+  <meta property="og:image:width" content="1000">
+  <meta property="og:image:height" content="522">
   <meta property="og:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="RepoRelay MCP - Bounded ChatGPT access to one local repository">
-  <meta name="twitter:description" content="Inspect and search one approved local repository through a bounded MCP interface.">
+  <meta name="twitter:title" content="RepoRelay - Secure ChatGPT Web MCP access to one local repository">
+  <meta name="twitter:description" content="Inspect and search one approved local repository through a bounded MCP bridge.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
   <meta name="twitter:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
@@ -28,26 +33,50 @@
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@type": "Organization",
+        "@id": "https://lukie-81.github.io/RepoRelay/#organization",
+        "name": "RepoRelay project",
+        "url": "https://lukie-81.github.io/RepoRelay/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://lukie-81.github.io/RepoRelay/assets/images/reporelay-logo.png"
+        },
+        "sameAs": [
+          "https://github.com/Lukie-81/RepoRelay",
+          "https://www.npmjs.com/package/reporelay-mcp",
+          "https://glama.ai/mcp/servers/Lukie-81/RepoRelay"
+        ]
+      },
+      {
         "@type": "WebSite",
         "@id": "https://lukie-81.github.io/RepoRelay/#website",
         "url": "https://lukie-81.github.io/RepoRelay/",
         "name": "RepoRelay",
-        "description": "A local MCP bridge that gives ChatGPT bounded access to one explicitly approved local repository.",
+        "description": "A secure local MCP bridge that gives ChatGPT Web bounded access to one explicitly approved local repository.",
         "inLanguage": "en",
+        "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"},
         "sameAs": [
           "https://github.com/Lukie-81/RepoRelay",
-          "https://www.npmjs.com/package/reporelay-mcp"
+          "https://www.npmjs.com/package/reporelay-mcp",
+          "https://glama.ai/mcp/servers/Lukie-81/RepoRelay"
         ]
       },
       {
         "@type": "SoftwareApplication",
         "@id": "https://lukie-81.github.io/RepoRelay/#software",
         "name": "RepoRelay",
-        "description": "A local MCP bridge for ChatGPT to inspect and search one approved repository without shell access, Git execution, machine-wide filesystem access, or arbitrary source-file writes.",
+        "description": "A secure local MCP bridge for ChatGPT Web to inspect and search one approved repository without shell access, Git execution, machine-wide filesystem access, or arbitrary source-file writes.",
         "url": "https://lukie-81.github.io/RepoRelay/",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "Windows, macOS, Linux",
         "softwareRequirements": "Node.js >=22.19 and <27",
+        "softwareVersion": "1.2.5",
+        "downloadUrl": "https://www.npmjs.com/package/reporelay-mcp",
+        "featureList": [
+          "Inspect and search one approved local repository",
+          "Loopback-only authenticated MCP bridge",
+          "Optional fixed-target coding-agent handoff writers"
+        ],
         "identifier": "io.github.Lukie-81/reporelay",
         "isAccessibleForFree": true,
         "offers": {
@@ -58,15 +87,17 @@
         "codeRepository": "https://github.com/Lukie-81/RepoRelay",
         "sameAs": [
           "https://github.com/Lukie-81/RepoRelay",
-          "https://www.npmjs.com/package/reporelay-mcp"
+          "https://www.npmjs.com/package/reporelay-mcp",
+          "https://glama.ai/mcp/servers/Lukie-81/RepoRelay"
         ],
-        "license": "https://spdx.org/licenses/MIT.html"
+        "license": "https://spdx.org/licenses/MIT.html",
+        "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"}
       },
       {
         "@type": "SoftwareSourceCode",
         "@id": "https://lukie-81.github.io/RepoRelay/#source",
         "name": "RepoRelay source code",
-        "description": "The TypeScript source for the RepoRelay local MCP bridge.",
+        "description": "The TypeScript source for the RepoRelay local MCP bridge used by ChatGPT Web for bounded local repository review.",
         "url": "https://github.com/Lukie-81/RepoRelay/tree/main",
         "codeRepository": "https://github.com/Lukie-81/RepoRelay",
         "programmingLanguage": "TypeScript",
@@ -74,18 +105,21 @@
         "runtimePlatform": "Node.js",
         "sameAs": [
           "https://github.com/Lukie-81/RepoRelay",
-          "https://www.npmjs.com/package/reporelay-mcp"
-        ]
+          "https://www.npmjs.com/package/reporelay-mcp",
+          "https://glama.ai/mcp/servers/Lukie-81/RepoRelay"
+        ],
+        "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"}
       },
       {
         "@type": "WebPage",
         "@id": "https://lukie-81.github.io/RepoRelay/#webpage",
         "url": "https://lukie-81.github.io/RepoRelay/",
-        "name": "RepoRelay MCP - Bounded ChatGPT Access to One Local Repository",
-        "description": "RepoRelay is a local MCP bridge for ChatGPT to inspect and search one approved repository without shell access, Git execution, machine-wide filesystem access, or arbitrary source-file writes.",
+        "name": "RepoRelay - Secure ChatGPT Web MCP Access to One Local Repository",
+        "description": "RepoRelay is a secure local MCP bridge for ChatGPT Web to inspect and search one approved repository without shell access, Git execution, machine-wide filesystem access, or arbitrary source-file writes.",
         "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
         "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
-        "mainEntity": {"@id": "https://lukie-81.github.io/RepoRelay/#software"}
+        "mainEntity": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
+        "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"}
       }
     ]
   }
@@ -115,8 +149,8 @@
   <main id="main-content">
     <section class="hero container" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <h1 id="hero-title">Give ChatGPT one repository, not your whole machine.</h1>
-        <p class="lede">RepoRelay gives ChatGPT a narrow, authenticated MCP surface for reading and searching one approved local repository, without shell access or machine-wide filesystem control.</p>
+        <h1 id="hero-title">Give ChatGPT Web one local repository through MCP, not your whole machine.</h1>
+        <p class="lede">RepoRelay gives ChatGPT Web a narrow, authenticated MCP surface for reading and searching one approved local repository, without shell access or machine-wide filesystem control.</p>
         <div class="hero-actions">
           <a class="button" href="/RepoRelay/install/">Install RepoRelay <span class="arrow" aria-hidden="true">→</span></a>
           <a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">View the source <span class="arrow" aria-hidden="true">↗</span></a>

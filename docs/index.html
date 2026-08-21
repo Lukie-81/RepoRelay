@@ -3,20 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RepoRelay documentation - install, security, setup, handoff</title>
-  <meta name="description" content="RepoRelay documentation hub for installation, ChatGPT local repository access, security, configuration, handoffs, auditing, and troubleshooting.">
+  <title>RepoRelay Docs - ChatGPT Web Local MCP Setup and Security</title>
+  <meta name="description" content="RepoRelay docs for connecting ChatGPT Web to a local repository via MCP, installing the CLI, auditing security, configuring tunnels, and using handoffs.">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
   <meta name="theme-color" content="#07101f">
   <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/docs/">
+  <meta property="og:locale" content="en_US">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="RepoRelay">
-  <meta property="og:title" content="RepoRelay documentation - install, security, setup, handoff">
-  <meta property="og:description" content="A compact documentation hub for RepoRelay guides and the canonical GitHub repository documents behind its MCP and security claims.">
+  <meta property="og:title" content="RepoRelay Docs - ChatGPT Web Local MCP Setup and Security">
+  <meta property="og:description" content="A documentation hub for connecting ChatGPT Web to a local repository through MCP, plus RepoRelay's canonical security and operations docs.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/docs/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
+  <meta property="og:image:width" content="1000">
+  <meta property="og:image:height" content="522">
   <meta property="og:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="RepoRelay documentation - install, security, setup, handoff">
-  <meta name="twitter:description" content="A compact documentation hub linking to the site guides and canonical repository documents.">
+  <meta name="twitter:title" content="RepoRelay Docs - ChatGPT Web Local MCP Setup and Security">
+  <meta name="twitter:description" content="Setup, security, tunnel, handoff, and canonical repository documentation for ChatGPT Web local MCP access.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
   <meta name="twitter:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
@@ -30,10 +34,11 @@
         "@type": "WebPage",
         "@id": "https://lukie-81.github.io/RepoRelay/docs/#webpage",
         "url": "https://lukie-81.github.io/RepoRelay/docs/",
-        "name": "RepoRelay documentation - install, security, setup, handoff",
-        "description": "RepoRelay documentation hub for installation, ChatGPT local repository access, security, configuration, handoffs, auditing, and troubleshooting.",
+        "name": "RepoRelay Docs - ChatGPT Web Local MCP Setup and Security",
+        "description": "RepoRelay docs for connecting ChatGPT Web to a local repository via MCP, installing the CLI, auditing security, configuring tunnels, and using handoffs.",
         "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
         "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
+        "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"},
         "breadcrumb": {"@id": "https://lukie-81.github.io/RepoRelay/docs/#breadcrumb"}
       },
       {
@@ -57,7 +62,7 @@
   </div></header>
 
   <main id="main-content">
-    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Docs</span></nav><p class="eyebrow">Documentation hub</p><h1>Start with the guide that matches your question.</h1><p class="lede">This site summarizes the product and its boundaries. Detailed implementation and operational documentation remains in the main RepoRelay repository, linked below as the canonical source.</p></section>
+    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Docs</span></nav><p class="eyebrow">Documentation hub</p><h1>RepoRelay docs for ChatGPT Web and local MCP repository access.</h1><p class="lede">Start with the guide that matches your question about connecting ChatGPT Web to a local repository via MCP. This site summarizes the product and its boundaries; detailed implementation and operational documentation remains in the main RepoRelay repository.</p></section>
 
     <section class="section compact" aria-labelledby="start-docs-title"><div class="container"><div class="section-head"><div><p class="section-kicker">Start here</p><h2 id="start-docs-title">The shortest paths through RepoRelay.</h2></div></div><div class="link-grid"><a class="link-card" href="/RepoRelay/install/"><span class="link-label">01 / install</span><h3>Install and connect</h3><p>npm install, quickstart, audit, tunnel setup, doctor, run, and ChatGPT app verification.</p></a><a class="link-card" href="/RepoRelay/chatgpt-local-repo/"><span class="link-label">02 / concept</span><h3>ChatGPT + local repository</h3><p>Understand MCP, Secure MCP Tunnel, tunnel-client, RepoRelay, and the one-root request path.</p></a><a class="link-card" href="/RepoRelay/security/"><span class="link-label">03 / boundary</span><h3>Security model</h3><p>Review containment, authentication, sensitive paths, fixed writers, audit, and limitations.</p></a></div></div></section>
 

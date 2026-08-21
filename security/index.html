@@ -3,20 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RepoRelay security boundary - loopback, containment, fixed handoffs</title>
+  <title>Secure ChatGPT Web MCP Access to a Local Repository | RepoRelay</title>
   <meta name="description" content="RepoRelay security: one canonical root, loopback authentication, containment checks, sensitive-path defenses, no shell or Git, fixed handoffs, and audit.">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
   <meta name="theme-color" content="#07101f">
   <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/security/">
+  <meta property="og:locale" content="en_US">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="RepoRelay">
-  <meta property="og:title" content="RepoRelay security boundary - loopback, containment, fixed handoffs">
-  <meta property="og:description" content="A precise summary of RepoRelay's enforced application boundary for local MCP code review, including its limits and non-sandbox claims.">
+  <meta property="og:title" content="Secure ChatGPT Web MCP Access to a Local Repository | RepoRelay">
+  <meta property="og:description" content="How RepoRelay constrains ChatGPT Web's local repository access with one canonical root, authentication, containment checks, no shell or Git, and fixed handoffs.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/security/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
+  <meta property="og:image:width" content="1000">
+  <meta property="og:image:height" content="522">
   <meta property="og:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="RepoRelay security boundary - loopback, containment, fixed handoffs">
-  <meta name="twitter:description" content="A precise summary of RepoRelay's enforced application boundary and its limitations.">
+  <meta name="twitter:title" content="Secure ChatGPT Web MCP Access to a Local Repository | RepoRelay">
+  <meta name="twitter:description" content="A precise summary of RepoRelay's application boundary for ChatGPT Web local repository access.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
   <meta name="twitter:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
@@ -30,10 +34,11 @@
         "@type": "WebPage",
         "@id": "https://lukie-81.github.io/RepoRelay/security/#webpage",
         "url": "https://lukie-81.github.io/RepoRelay/security/",
-        "name": "RepoRelay security boundary - loopback, containment, fixed handoffs",
-        "description": "Read RepoRelay's security model for bounded MCP repository access: one canonical root, loopback authentication, containment checks, no shell access, fixed handoffs, audit, and limitations.",
+        "name": "Secure ChatGPT Web MCP Access to a Local Repository | RepoRelay",
+        "description": "Read RepoRelay's security model for ChatGPT Web local repository access: one canonical root, loopback authentication, containment checks, no shell access, fixed handoffs, audit, and limitations.",
         "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
         "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
+        "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"},
         "breadcrumb": {"@id": "https://lukie-81.github.io/RepoRelay/security/#breadcrumb"}
       },
       {
@@ -57,7 +62,7 @@
   </div></header>
 
   <main id="main-content">
-    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Security</span></nav><p class="eyebrow">Read the source of truth</p><h1>A narrow application boundary, with explicit limits.</h1><p class="lede">RepoRelay is an authenticated, loopback-only MCP bridge for one explicitly approved repository. Its controls limit the tools and paths exposed to the reviewer; they do not turn the process into an operating-system sandbox.</p><div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">Read SECURITY.md on GitHub <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="/RepoRelay/install/">See the audit-first setup</a></div></section>
+    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Security</span></nav><p class="eyebrow">Read the source of truth</p><h1>How RepoRelay secures ChatGPT Web access to a local repository.</h1><p class="lede">RepoRelay is an authenticated, loopback-only MCP bridge for one explicitly approved repository. Its controls limit the tools and paths exposed to the reviewer; they do not turn the process into an operating-system sandbox.</p><div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">Read SECURITY.md on GitHub <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="/RepoRelay/install/">See the audit-first setup</a></div></section>
 
     <section class="section compact" aria-labelledby="security-answer-title">
       <div class="container">
