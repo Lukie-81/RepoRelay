@@ -147,7 +147,7 @@ button { font: inherit; }
   text-decoration: none;
 }
 
-.brand img { width: clamp(135px, 15vw, 175px); }
+.brand img { width: auto; height: clamp(44px, 4vw, 52px); object-fit: contain; }
 .brand .logo-dark { display: none; }
 
 :root[data-theme="dark"] .brand .logo-light { display: none; }
@@ -252,6 +252,10 @@ h3 { margin-bottom: 0.6rem; font-size: 1.14rem; line-height: 1.25; }
 p { color: var(--ink-muted); }
 .lede { max-width: 650px; font-size: clamp(1.1rem, 1.8vw, 1.35rem); line-height: 1.65; }
 .small { font-size: 0.91rem; }
+.last-updated { margin: 1rem 0 0; color: var(--ink-muted); font-size: 0.82rem; }
+.last-updated time { color: var(--ink); font-variant-numeric: tabular-nums; }
+.project-identity { margin: 1rem 0 0; color: var(--ink-muted); font-size: 0.86rem; }
+.project-identity a { color: var(--ink); }
 
 .hero-actions,
 .cta-row,

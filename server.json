@@ -4,7 +4,7 @@
   "title": "RepoRelay",
   "description": "Bounded local MCP access to one approved repository for AI read/search and structured handoffs.",
   "version": "1.2.5",
-  "websiteUrl": "https://github.com/Lukie-81/RepoRelay",
+  "websiteUrl": "https://lukie-81.github.io/RepoRelay/",
   "repository": {
     "url": "https://github.com/Lukie-81/RepoRelay",
     "source": "github"

@@ -33,7 +33,11 @@
     "start": "node dist/cli.js serve",
     "test": "tsx src/config.test.ts && tsx src/audit.test.ts && tsx src/review-files.test.ts && tsx src/mcp-tools.test.ts && tsx src/bridge-auth.test.ts && tsx src/quickstart.test.ts && tsx src/zip-safe.test.ts && tsx src/tunnel-client-install.test.ts && tsx src/tunnel.test.ts && tsx src/roots.test.ts && tsx src/mcp-sessions.test.ts && tsx src/server-shutdown.test.ts",
     "verify:release": "npm run typecheck && npm test && npm run build",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "seo:validate": "node scripts/validate-site.mjs",
+    "seo:audit": "node scripts/validate-site.mjs",
+    "seo:sitemap": "node scripts/update-sitemap.mjs",
+    "seo:index-readiness": "node scripts/index-readiness.mjs"
   },
   "keywords": [
     "reporelay",
@@ -50,7 +54,7 @@
   "bugs": {
     "url": "https://github.com/Lukie-81/RepoRelay/issues"
   },
-  "homepage": "https://github.com/Lukie-81/RepoRelay#readme",
+  "homepage": "https://lukie-81.github.io/RepoRelay/",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

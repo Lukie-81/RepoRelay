@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Can ChatGPT access local files without uploading them? | RepoRelay</title>
+  <meta name="description" content="RepoRelay lets ChatGPT review one explicitly approved local repository through MCP without uploading a ZIP or exposing your whole filesystem.">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#07101f">
+  <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/chatgpt-local-files/">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="RepoRelay">
+  <meta property="og:title" content="Can ChatGPT access local files without uploading them? | RepoRelay">
+  <meta property="og:description" content="A precise answer about reviewing one approved local repository through MCP without giving ChatGPT general computer or filesystem access.">
+  <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/chatgpt-local-files/">
+  <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
+  <meta property="og:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Can ChatGPT access local files without uploading them? | RepoRelay">
+  <meta name="twitter:description" content="Review one approved local repository through MCP without uploading a ZIP or exposing the whole filesystem.">
+  <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
+  <meta name="twitter:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
+  <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
+  <link rel="icon" href="/RepoRelay/assets/images/favicon.svg" type="image/svg+xml">
+  <script defer src="/RepoRelay/assets/js/site.js"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "@id": "https://lukie-81.github.io/RepoRelay/chatgpt-local-files/#article",
+        "url": "https://lukie-81.github.io/RepoRelay/chatgpt-local-files/",
+        "name": "Can ChatGPT access local files without uploading them? | RepoRelay",
+        "headline": "Can ChatGPT access local files without uploading them?",
+        "description": "A precise explanation of how RepoRelay lets ChatGPT Web inspect one explicitly approved local repository through MCP without exposing a whole computer.",
+        "datePublished": "2026-08-20",
+        "dateModified": "2026-08-23",
+        "author": {"@type": "Person", "name": "Lukie-81", "url": "https://github.com/Lukie-81"},
+        "mainEntityOfPage": {"@id": "https://lukie-81.github.io/RepoRelay/chatgpt-local-files/#webpage"},
+        "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
+        "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"}
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://lukie-81.github.io/RepoRelay/chatgpt-local-files/#webpage",
+        "url": "https://lukie-81.github.io/RepoRelay/chatgpt-local-files/",
+        "name": "Can ChatGPT access local files without uploading them? | RepoRelay",
+        "description": "A precise explanation of bounded local repository access through RepoRelay MCP.",
+        "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
+        "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
+        "mainEntity": {"@id": "https://lukie-81.github.io/RepoRelay/chatgpt-local-files/#article"},
+        "breadcrumb": {"@id": "https://lukie-81.github.io/RepoRelay/chatgpt-local-files/#breadcrumb"}
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://lukie-81.github.io/RepoRelay/chatgpt-local-files/#breadcrumb",
+        "itemListElement": [
+          {"@type": "ListItem", "position": 1, "name": "RepoRelay", "item": "https://lukie-81.github.io/RepoRelay/"},
+          {"@type": "ListItem", "position": 2, "name": "ChatGPT + local files", "item": "https://lukie-81.github.io/RepoRelay/chatgpt-local-files/"}
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="site-header"><div class="nav-wrap">
+    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay" width="321" height="376"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"></a>
+    <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation"><a href="/RepoRelay/docs/">Docs</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/install/">Install</a></nav>
+    <div class="nav-controls"><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">↗</span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button><button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button></div>
+  </div></header>
+
+  <main id="main-content">
+    <section class="page-hero container">
+      <nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">ChatGPT + local files</span></nav>
+      <p class="eyebrow">Answer first / local files</p>
+      <h1>Can ChatGPT access local files without uploading them?</h1>
+      <p class="lede"><strong>Yes, but not by giving ChatGPT general access to your computer.</strong> RepoRelay lets ChatGPT Web inspect one explicitly approved local repository through MCP, without uploading a ZIP and without exposing arbitrary files or a whole filesystem.</p>
+      <p class="last-updated">Last updated: <time data-site-last-modified datetime="2026-08-23">August 23, 2026</time></p>
+      <div class="cta-row"><a class="button" href="/RepoRelay/chatgpt-local-repo/">See how local repository access works</a><a class="button secondary" href="/RepoRelay/security/">Read RepoRelay's security model</a></div>
+    </section>
+
+    <section class="section compact" aria-labelledby="direct-answer-title">
+      <div class="container">
+        <div class="prose-panel">
+          <p class="section-kicker">The short answer</p>
+          <h2 id="direct-answer-title">Can ChatGPT read a local project without a ZIP upload?</h2>
+          <p>Yes. You can run a local MCP server, explicitly approve a repository directory, and let the server return only the content its tools allow. <a href="https://modelcontextprotocol.io/docs/getting-started/intro">MCP is an open protocol for connecting AI applications to external systems</a>; it does not by itself grant access to a computer.</p>
+          <p>RepoRelay is the local MCP server in this setup. It authenticates the bridge and exposes bounded inspection tools for one canonical repository. The separate tunnel carries requests to the local endpoint; RepoRelay still decides which paths and operations are allowed.</p>
+          <p><strong>No ZIP upload does not mean no data is transmitted.</strong> When ChatGPT asks RepoRelay to read an allowed file or return search results, that response travels through the configured connection to ChatGPT. Do not approve a repository containing credentials or private material the reviewer should not receive.</p>
+          <h3>What is actually in scope?</h3>
+          <ul>
+            <li>One existing, explicitly approved local repository at a time.</li>
+            <li><code>open_workspace</code>, <code>list_files</code>, <code>read_file</code>, and <code>search_files</code> for bounded inspection.</li>
+            <li>Optionally, three fixed handoff writers for pre-existing <code>.ai-handoff</code> targets.</li>
+          </ul>
+          <h3>What is not in scope?</h3>
+          <p>RepoRelay does not expose a shell, PowerShell, Git, process launcher, arbitrary source-file editor, delete operation, or general filesystem browser. It is an application boundary, not an operating-system sandbox; read the <a href="/RepoRelay/security/">security page</a> before approving a repository.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="no-upload-title">
+      <div class="container">
+        <div class="section-head"><div><p class="section-kicker">How it works</p><h2 id="no-upload-title">The no-upload path is an explicit connection.</h2><p>The local repository remains on your machine. ChatGPT receives responses from the tools that RepoRelay exposes through the connection you configure.</p></div></div>
+        <div class="architecture"><div class="flow" aria-label="No-upload local file access path">
+          <div class="flow-step"><strong>1 / Choose</strong><span>Select one existing repository directory.</span></div>
+          <div class="flow-step"><strong>2 / Start</strong><span>Run RepoRelay on the approved path.</span></div>
+          <div class="flow-step"><strong>3 / Audit</strong><span>Verify the local authenticated surface.</span></div>
+          <div class="flow-step"><strong>4 / Connect</strong><span>Use the tunnel and ChatGPT MCP app.</span></div>
+          <div class="flow-step highlight"><strong>5 / Review</strong><span>Call bounded tools inside that root.</span></div>
+        </div></div>
+        <div class="source-row"><div><h2>Transport is not authorization.</h2><p>OpenAI's <a href="https://developers.openai.com/api/docs/guides/secure-mcp-tunnels">Secure MCP Tunnel guide</a> describes the external connectivity layer. RepoRelay remains responsible for its own loopback, authentication, approved-root, path, and tool-surface checks.</p></div><div class="source-links"><a href="/RepoRelay/install/">Follow the RepoRelay install and audit steps</a><a href="https://help.openai.com/en/articles/12584461">Read the official ChatGPT developer-mode and MCP apps guide</a></div></div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="common-questions-title">
+      <div class="container">
+        <div class="section-head"><div><p class="section-kicker">Common questions</p><h2 id="common-questions-title">What can you do with this boundary?</h2></div></div>
+        <div class="feature-grid">
+          <article class="feature"><h3>Can ChatGPT review uncommitted code?</h3><p>Yes. The local working tree can be the review target before you create a branch or pull request, provided the files are inside the approved root and pass the repository's path policy. <a href="/RepoRelay/chatgpt-local-repo/">See the MCP architecture and local-repository workflow</a>.</p></article>
+          <article class="feature"><h3>Why not push the code to GitHub?</h3><p>GitHub is often the right shared source of truth. RepoRelay is useful when you want to review local work before publishing it. <a href="/RepoRelay/github-vs-local/">Compare GitHub and local repository access</a>.</p></article>
+          <article class="feature"><h3>Can RepoRelay access my whole filesystem?</h3><p>No. It approves one repository and rejects paths outside its containment boundary. Those controls do not replace operating-system security or remove the need to inspect what you approve. <a href="/RepoRelay/security/">Read the enforced protections and limits</a>.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section compact" aria-labelledby="local-files-start-title"><div class="container"><div class="cta-band"><p class="section-kicker">Next step</p><h2 id="local-files-start-title">Start with one path you can explain.</h2><p>Install RepoRelay, run its audit, and verify the expected four-tool or seven-tool surface before normal use. The site explains the workflow; the <a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">current security policy</a> and source remain authoritative.</p><div class="cta-row"><a class="button" href="/RepoRelay/install/">Install RepoRelay</a><a class="button secondary" href="/RepoRelay/docs/">Browse the documentation hub</a></div></div></div></section>
+  </main>
+
+  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/chatgpt-local-files/">Local files / no upload</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/faq/">FAQ</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md">README.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a><a href="https://www.npmjs.com/package/reporelay-mcp">npm package ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Questions should resolve to source, not slogans</span></div></div></footer>
+</body>
+</html>

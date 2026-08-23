@@ -3,42 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ChatGPT GitHub vs Local Repository Access via MCP | RepoRelay</title>
-  <meta name="description" content="Compare ChatGPT review through GitHub with RepoRelay local MCP review for uncommitted work, source-of-truth trade-offs, setup, and security boundaries.">
-  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <title>GitHub access vs local repository access | RepoRelay</title>
+  <meta name="description" content="Compare GitHub review with RepoRelay local review for uncommitted work, source-of-truth trade-offs, setup, and security boundaries.">
+  <meta name="robots" content="index,follow">
   <meta name="theme-color" content="#07101f">
   <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/github-vs-local/">
-  <meta property="og:locale" content="en_US">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="RepoRelay">
-  <meta property="og:title" content="ChatGPT GitHub vs Local Repository Access via MCP | RepoRelay">
-  <meta property="og:description" content="A balanced comparison of ChatGPT review through GitHub and one explicitly approved local repository through RepoRelay's MCP bridge.">
+  <meta property="og:title" content="GitHub access vs local repository access | RepoRelay">
+  <meta property="og:description" content="A balanced comparison of GitHub review and one explicitly approved local working tree through RepoRelay, without implying either workflow is universally safer.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/github-vs-local/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
-  <meta property="og:image:width" content="1000">
-  <meta property="og:image:height" content="522">
   <meta property="og:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="ChatGPT GitHub vs Local Repository Access via MCP | RepoRelay">
-  <meta name="twitter:description" content="A balanced comparison of ChatGPT GitHub review and local repository review through MCP.">
+  <meta name="twitter:title" content="GitHub access vs local repository access | RepoRelay">
+  <meta name="twitter:description" content="A balanced comparison of reviewing code on GitHub and reviewing one explicitly approved local repository through RepoRelay.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
   <meta name="twitter:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
-  <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
+  <link rel="icon" href="/RepoRelay/assets/images/favicon.svg" type="image/svg+xml">
   <script defer src="/RepoRelay/assets/js/site.js"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "WebPage",
+        "@type": "TechArticle",
         "@id": "https://lukie-81.github.io/RepoRelay/github-vs-local/#webpage",
         "url": "https://lukie-81.github.io/RepoRelay/github-vs-local/",
-        "name": "ChatGPT GitHub vs Local Repository Access via MCP | RepoRelay",
-        "description": "Compare ChatGPT review through GitHub with RepoRelay local MCP review for uncommitted work, source-of-truth trade-offs, setup, and security boundaries.",
+        "name": "GitHub access vs local repository access | RepoRelay",
+        "description": "Compare GitHub-based code access with RepoRelay's bounded local repository access, including uncommitted work, source-of-truth trade-offs, setup, and security boundaries.",
+        "headline": "GitHub access and local repository access solve different problems",
+        "datePublished": "2026-08-19",
+        "dateModified": "2026-08-23",
+        "author": {"@type": "Person", "name": "Lukie-81", "url": "https://github.com/Lukie-81"},
+        "mainEntityOfPage": "https://lukie-81.github.io/RepoRelay/github-vs-local/",
         "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
         "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
-        "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"},
         "breadcrumb": {"@id": "https://lukie-81.github.io/RepoRelay/github-vs-local/#breadcrumb"}
       },
       {
@@ -56,13 +57,13 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="site-header"><div class="nav-wrap">
-    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a>
+    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay" width="321" height="376"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"></a>
     <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation"><a href="/RepoRelay/docs/">Docs</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/install/">Install</a></nav>
     <div class="nav-controls"><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">↗</span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button><button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button></div>
   </div></header>
 
   <main id="main-content">
-    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">GitHub vs local</span></nav><p class="eyebrow">Two valid sources of truth</p><h1>ChatGPT GitHub access and local MCP access solve different problems.</h1><p class="lede">GitHub is often the right place for AI-assisted code review: it is shareable, versioned, and already part of a collaborative workflow. RepoRelay is for the case where you specifically want ChatGPT Web to inspect one approved local repository through MCP before the work is published.</p></section>
+    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">GitHub vs local</span></nav><p class="eyebrow">Two valid sources of truth</p><h1>GitHub access and local access solve different problems.</h1><p class="lede">GitHub is often the right place for AI-assisted code review: it is shareable, versioned, and already part of a collaborative workflow. RepoRelay is for the case where you specifically want ChatGPT to inspect one approved repository on the machine in front of you.</p><p class="last-updated">Last updated: <time data-site-last-modified datetime="2026-08-23">August 23, 2026</time></p></section>
 
     <section class="section compact" aria-labelledby="why-local-title">
       <div class="container">
@@ -71,7 +72,7 @@
           <h2 id="why-local-title">Why use RepoRelay instead of pushing code to GitHub?</h2>
           <p>Use RepoRelay when the review target is an uncommitted working tree or local project state that you are not ready to publish. It gives ChatGPT bounded access to one approved directory through an MCP server you run locally.</p>
           <p>Use GitHub when the reviewed state should be a branch, commit, pull request, issue, or durable collaborative link. Neither workflow is automatically safer: each has a different source of truth, permission model, and operator responsibility.</p>
-          <p><a href="/RepoRelay/chatgpt-local-repo/">See how ChatGPT local repository access works</a> or <a href="/RepoRelay/security/">read the RepoRelay security model</a> before choosing.</p>
+          <p><a href="/RepoRelay/chatgpt-local-repo/">See how ChatGPT local repository access works</a>, read <a href="/RepoRelay/chatgpt-local-files/">how local files can be reviewed without a ZIP upload</a>, or <a href="/RepoRelay/security/">read the RepoRelay security model</a> before choosing.</p>
         </div>
       </div>
     </section>
@@ -85,6 +86,6 @@
     <section class="section compact"><div class="container"><div class="callout"><strong>Bottom line:</strong> Use GitHub when GitHub is the right source of truth. Use RepoRelay when you specifically want bounded access to an approved local repository. Review the <a href="/RepoRelay/security/">security boundary</a> before connecting either workflow.</div></div></section>
   </main>
 
-  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/security/">Security</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md">README.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Compare the source state you actually intend to review</span></div></div></footer>
+  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/chatgpt-local-files/">Local files / no upload</a><a href="/RepoRelay/security/">Security</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md">README.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Compare the source state you actually intend to review</span></div></div></footer>
 </body>
 </html>

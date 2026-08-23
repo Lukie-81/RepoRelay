@@ -1,17 +1,19 @@
 # RepoRelay
 
-> RepoRelay is an open-source local MCP bridge that gives ChatGPT Web bounded access to one explicitly approved local repository for inspection and search, without exposing shell, Git execution, machine-wide filesystem access, or arbitrary source-file writes.
+> RepoRelay is an open-source local MCP bridge that gives ChatGPT bounded access to one explicitly approved local repository for inspection and search, without exposing shell, Git execution, machine-wide filesystem access, or arbitrary source-file writes.
 
 This is a concise machine-readable project map, not an official search-engine standard and not a guarantee of ranking, citation, or inclusion.
 
 ## Canonical identity
 
 - Project: RepoRelay by Lukie-81
+- Product name: `RepoRelay`
+- Alternate descriptive name: `RepoRelay MCP`
 - Official website: https://lukie-81.github.io/RepoRelay/
 - GitHub repository: https://github.com/Lukie-81/RepoRelay
 - npm package: `reporelay-mcp` at https://www.npmjs.com/package/reporelay-mcp
 - MCP server identifier: `io.github.Lukie-81/reporelay`
-- Directory listing: https://glama.ai/mcp/servers/Lukie-81/RepoRelay
+- Related MCP listing: https://mcpservers.org/servers/lukie-81/reporelay
 - RepoRelay is local/self-hosted software. It is not ChatGPT, OpenAI, Codex, GitHub, or the OpenAI Secure MCP Tunnel.
 
 ## Primary pages
@@ -19,21 +21,11 @@ This is a concise machine-readable project map, not an official search-engine st
 - [Home](https://lukie-81.github.io/RepoRelay/): product overview, architecture, tool surface, and quick setup.
 - [Install](https://lukie-81.github.io/RepoRelay/install/): install, quickstart, audit, Secure MCP Tunnel, and ChatGPT app sequence.
 - [ChatGPT + local repository](https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/): direct explanation of how local repository access works.
+- [ChatGPT + local files](https://lukie-81.github.io/RepoRelay/chatgpt-local-files/): whether local project files can be reviewed without uploading a ZIP, and what the boundary excludes.
 - [Security](https://lukie-81.github.io/RepoRelay/security/): one-root containment, authentication, sensitive paths, fixed handoffs, audit, and limitations.
 - [GitHub vs local](https://lukie-81.github.io/RepoRelay/github-vs-local/): balanced comparison of GitHub-based and local repository access.
 - [FAQ](https://lukie-81.github.io/RepoRelay/faq/): concise factual answers about MCP, tools, setup, and support.
 - [Documentation](https://lukie-81.github.io/RepoRelay/docs/): links to the website guides and canonical repository documents.
-
-## Common questions and page map
-
-- How can ChatGPT Web access a local repository via MCP? See [ChatGPT + local repository](https://lukie-81.github.io/RepoRelay/chatgpt-local-repo/) and [Install](https://lukie-81.github.io/RepoRelay/install/).
-- How do I connect ChatGPT Web to a local MCP server? See [Install](https://lukie-81.github.io/RepoRelay/install/) and the [ChatGPT Web connection documentation](https://github.com/Lukie-81/RepoRelay/blob/main/docs/chatgpt-web.md).
-- How is ChatGPT Web local repository access secured? See [Security](https://lukie-81.github.io/RepoRelay/security/) and [SECURITY.md](https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md).
-- Should ChatGPT review GitHub or the local working tree? See [GitHub vs local](https://lukie-81.github.io/RepoRelay/github-vs-local/).
-
-## Citation guidance
-
-For implementation and security claims, prefer the current [README.md](https://github.com/Lukie-81/RepoRelay/blob/main/README.md), [SECURITY.md](https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md), and linked documentation in the canonical GitHub repository. Use this file and the website as the concise overview; they do not replace the repository source or guarantee search ranking, indexing, or AI citation.
 
 ## Canonical source
 
@@ -43,7 +35,11 @@ For implementation and security claims, prefer the current [README.md](https://g
 - [ChatGPT Web connection documentation](https://github.com/Lukie-81/RepoRelay/blob/main/docs/chatgpt-web.md)
 - [Configuration documentation](https://github.com/Lukie-81/RepoRelay/blob/main/docs/configuration.md)
 - [Handoff cycle documentation](https://github.com/Lukie-81/RepoRelay/blob/main/docs/handoff-cycle.md)
+- [Search indexing checklist](https://github.com/Lukie-81/RepoRelay/blob/main/docs/search-indexing.md)
+- [Search growth plan](https://github.com/Lukie-81/RepoRelay/blob/main/docs/search-growth.md)
 - [npm package](https://www.npmjs.com/package/reporelay-mcp)
+- [MCP introduction](https://modelcontextprotocol.io/docs/getting-started/intro)
+- [OpenAI Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
 
 ## Terminology
 

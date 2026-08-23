@@ -3,28 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RepoRelay FAQ - ChatGPT Web, Local MCP Repositories, and Security</title>
-  <meta name="description" content="RepoRelay FAQ: how ChatGPT Web connects to a local repository via MCP, permissions, handoffs, inspection-only mode, audit, platforms, and Node.js support.">
-  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <title>RepoRelay FAQ - MCP, ChatGPT local repo access, and security</title>
+  <meta name="description" content="RepoRelay FAQ: MCP, ChatGPT local repository access, permissions, handoffs, inspection-only mode, audit, platforms, and Node.js support.">
+  <meta name="robots" content="index,follow">
   <meta name="theme-color" content="#07101f">
   <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/faq/">
-  <meta property="og:locale" content="en_US">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="RepoRelay">
-  <meta property="og:title" content="RepoRelay FAQ - ChatGPT Web, Local MCP Repositories, and Security">
-  <meta property="og:description" content="Direct, source-checked answers about ChatGPT Web local repository access through MCP, RepoRelay's tool surface, security boundary, and setup.">
+  <meta property="og:title" content="RepoRelay FAQ - MCP, ChatGPT local repo access, and security">
+  <meta property="og:description" content="Direct, source-checked answers about RepoRelay's tool surface, local access, security boundary, and setup.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/faq/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
-  <meta property="og:image:width" content="1000">
-  <meta property="og:image:height" content="522">
   <meta property="og:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="RepoRelay FAQ - ChatGPT Web, Local MCP Repositories, and Security">
-  <meta name="twitter:description" content="Direct answers about ChatGPT Web local repository access through MCP, RepoRelay's tool surface, security boundary, and setup.">
+  <meta name="twitter:title" content="RepoRelay FAQ - MCP, ChatGPT local repo access, and security">
+  <meta name="twitter:description" content="Direct, source-checked answers about RepoRelay's tool surface, local access, security boundary, and setup.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
   <meta name="twitter:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
-  <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
+  <link rel="icon" href="/RepoRelay/assets/images/favicon.svg" type="image/svg+xml">
   <script defer src="/RepoRelay/assets/js/site.js"></script>
   <script type="application/ld+json">
   {
@@ -32,15 +29,17 @@
     "@type": "FAQPage",
     "@id": "https://lukie-81.github.io/RepoRelay/faq/#faq",
     "url": "https://lukie-81.github.io/RepoRelay/faq/",
-    "name": "RepoRelay FAQ - ChatGPT Web, Local MCP Repositories, and Security",
-    "description": "RepoRelay FAQ: how ChatGPT Web connects to a local repository via MCP, permissions, handoffs, inspection-only mode, audit, platforms, and Node.js support.",
+    "name": "RepoRelay FAQ - MCP, ChatGPT local repo access, and security",
+    "description": "Direct answers about RepoRelay's MCP tool surface, local repository access, security boundary, and setup.",
+    "dateModified": "2026-08-23",
+    "mainEntityOfPage": "https://lukie-81.github.io/RepoRelay/faq/",
     "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
     "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
-    "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"},
     "mainEntity": [
       {"@type":"Question","name":"What is RepoRelay?","acceptedAnswer":{"@type":"Answer","text":"RepoRelay is an open-source local MCP bridge for tightly controlled repository review and structured coding-agent handoffs. It exposes one explicitly approved local repository through an authenticated loopback server."}},
       {"@type":"Question","name":"Is RepoRelay open source?","acceptedAnswer":{"@type":"Answer","text":"Yes. RepoRelay is published under the MIT License in the public GitHub repository at https://github.com/Lukie-81/RepoRelay."}},
-      {"@type":"Question","name":"What is MCP?","acceptedAnswer":{"@type":"Answer","text":"MCP, or Model Context Protocol, is the protocol used for an AI client such as ChatGPT to discover and call tools exposed by a server. RepoRelay is the local MCP server and application boundary."}},
+      {"@type":"Question","name":"What is MCP?","acceptedAnswer":{"@type":"Answer","text":"MCP, or Model Context Protocol, is an open protocol used for an AI client such as ChatGPT to discover and call tools exposed by a server. RepoRelay is the local MCP server and application boundary."}},
+      {"@type":"Question","name":"Can ChatGPT access local files without uploading a ZIP?","acceptedAnswer":{"@type":"Answer","text":"Yes, but only through an explicit connection to a local MCP server and one approved repository. Allowed file content or search results still travel through that connection; RepoRelay does not expose a whole computer. See https://lukie-81.github.io/RepoRelay/chatgpt-local-files/."}},
       {"@type":"Question","name":"Can ChatGPT access my entire computer through RepoRelay?","acceptedAnswer":{"@type":"Answer","text":"No. RepoRelay approves exactly one existing canonical repository directory at a time and does not expose general filesystem, shell, process, Git, or arbitrary mutation tools."}},
       {"@type":"Question","name":"Does RepoRelay provide shell access?","acceptedAnswer":{"@type":"Answer","text":"No. The public review server does not register shell, PowerShell, process-launch, or local-agent execution tools."}},
       {"@type":"Question","name":"Can RepoRelay run Git commands?","acceptedAnswer":{"@type":"Answer","text":"No. Git is not an exposed RepoRelay tool. Git operations remain local operator or coding-agent actions."}},
@@ -74,18 +73,19 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="site-header"><div class="nav-wrap">
-    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a>
+    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay" width="321" height="376"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"></a>
     <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation"><a href="/RepoRelay/docs/">Docs</a><a href="/RepoRelay/security/">Security</a><a href="/RepoRelay/install/">Install</a></nav>
     <div class="nav-controls"><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">↗</span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button><button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button></div>
   </div></header>
 
   <main id="main-content">
-    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">FAQ</span></nav><p class="eyebrow">Direct answers</p><h1>RepoRelay FAQ: ChatGPT Web, local MCP access, and security.</h1><p class="lede">These answers explain how ChatGPT Web connects to a local repository through MCP, what RepoRelay can and cannot expose, and where the current README, security policy, and repository documentation provide exact commands.</p></section>
+    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">FAQ</span></nav><p class="eyebrow">Direct answers</p><h1>RepoRelay questions, answered without the marketing fog.</h1><p class="lede">These answers summarize the current README, security policy, and repository documentation. For exact commands and implementation details, follow the source links in the <a href="/RepoRelay/docs/">documentation hub</a>.</p><p class="last-updated">Last updated: <time data-site-last-modified datetime="2026-08-23">August 23, 2026</time></p></section>
 
     <section class="section compact" aria-labelledby="faq-title"><div class="container"><div class="faq-list" id="faq-title">
       <details open><summary>What is RepoRelay?</summary><div><p>RepoRelay is an open-source local MCP bridge for tightly controlled repository review and structured coding-agent handoffs. It exposes one explicitly approved local repository through an authenticated loopback server.</p></div></details>
       <details><summary>Is RepoRelay open source?</summary><div><p>Yes. RepoRelay is published under the MIT License in the <a href="https://github.com/Lukie-81/RepoRelay">public GitHub repository</a>.</p></div></details>
-      <details><summary>What is MCP?</summary><div><p>MCP, or Model Context Protocol, is the protocol used for an AI client such as ChatGPT to discover and call tools exposed by a server. RepoRelay is the local MCP server and application boundary; MCP itself is not the security boundary.</p></div></details>
+      <details><summary>What is MCP?</summary><div><p><a href="https://modelcontextprotocol.io/docs/getting-started/intro">MCP, or Model Context Protocol, is an open protocol</a> used for an AI client such as ChatGPT to discover and call tools exposed by a server. RepoRelay is the local MCP server and application boundary; MCP itself is not the security boundary.</p></div></details>
+      <details><summary>Can ChatGPT access local files without uploading a ZIP?</summary><div><p>Yes, but only through an explicit connection to a local MCP server and an approved repository. The file content or search results returned by an allowed tool still travel through that connection, so do not approve credentials or private material. <a href="/RepoRelay/chatgpt-local-files/">RepoRelay&#39;s local-files guide</a> explains the no-upload workflow and why it does not expose a whole computer.</p></div></details>
       <details><summary>Can ChatGPT access my entire computer through RepoRelay?</summary><div><p>No. RepoRelay approves exactly one existing canonical repository directory at a time and does not expose general filesystem, shell, process, Git, or arbitrary mutation tools.</p></div></details>
       <details><summary>Does RepoRelay provide shell access?</summary><div><p>No. The public review server does not register shell, PowerShell, process-launch, or local-agent execution tools.</p></div></details>
       <details><summary>Can RepoRelay run Git commands?</summary><div><p>No. Git is not an exposed RepoRelay tool. Git operations remain local operator or coding-agent actions.</p></div></details>
@@ -106,6 +106,6 @@
     <section class="section compact"><div class="container"><div class="cta-band"><p class="section-kicker">Still deciding?</p><h2>Read the boundary before you connect.</h2><p>Security-sensitive setup is easier to evaluate when the transport layer and the local tool server are described separately.</p><div class="cta-row"><a class="button" href="/RepoRelay/security/">Read the security page <span class="arrow" aria-hidden="true">→</span></a><a class="button secondary" href="/RepoRelay/install/">Start installation</a></div></div></div></section>
   </main>
 
-  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/security/">Security</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md">README.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a><a href="https://www.npmjs.com/package/reporelay-mcp">npm package ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Questions should resolve to source, not slogans</span></div></div></footer>
+  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/chatgpt-local-files/">Local files / no upload</a><a href="/RepoRelay/security/">Security</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay/blob/main/README.md">README.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a><a href="https://www.npmjs.com/package/reporelay-mcp">npm package ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Questions should resolve to source, not slogans</span></div></div></footer>
 </body>
 </html>

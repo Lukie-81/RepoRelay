@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>RepoRelay</title>
+  <rect width="64" height="64" rx="14" fill="#07101f"/>
+  <path d="M17 14h18c9 0 14 4.8 14 12.4 0 5.2-2.7 9-7.4 10.8L51 50H39.6L30.8 38H27v12H17V14Zm10 8v8h7.2c3.1 0 4.8-1.4 4.8-4s-1.7-4-4.8-4H27Z" fill="#eff5ff"/>
+  <path d="M39 50 50.5 36.7 55 40.6 44.1 54H35l4-4Z" fill="#6ba2ff"/>
+</svg>

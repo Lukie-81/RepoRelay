@@ -3,42 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Secure ChatGPT Web MCP Access to a Local Repository | RepoRelay</title>
+  <title>RepoRelay security boundary - loopback, containment, fixed handoffs</title>
   <meta name="description" content="RepoRelay security: one canonical root, loopback authentication, containment checks, sensitive-path defenses, no shell or Git, fixed handoffs, and audit.">
-  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <meta name="robots" content="index,follow">
   <meta name="theme-color" content="#07101f">
   <link rel="canonical" href="https://lukie-81.github.io/RepoRelay/security/">
-  <meta property="og:locale" content="en_US">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="RepoRelay">
-  <meta property="og:title" content="Secure ChatGPT Web MCP Access to a Local Repository | RepoRelay">
-  <meta property="og:description" content="How RepoRelay constrains ChatGPT Web's local repository access with one canonical root, authentication, containment checks, no shell or Git, and fixed handoffs.">
+  <meta property="og:title" content="RepoRelay security boundary - loopback, containment, fixed handoffs">
+  <meta property="og:description" content="A precise summary of RepoRelay's enforced application boundary for local MCP code review, including its limits and non-sandbox claims.">
   <meta property="og:url" content="https://lukie-81.github.io/RepoRelay/security/">
   <meta property="og:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
-  <meta property="og:image:width" content="1000">
-  <meta property="og:image:height" content="522">
   <meta property="og:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Secure ChatGPT Web MCP Access to a Local Repository | RepoRelay">
-  <meta name="twitter:description" content="A precise summary of RepoRelay's application boundary for ChatGPT Web local repository access.">
+  <meta name="twitter:title" content="RepoRelay security boundary - loopback, containment, fixed handoffs">
+  <meta name="twitter:description" content="A precise summary of RepoRelay's enforced application boundary and its limitations.">
   <meta name="twitter:image" content="https://lukie-81.github.io/RepoRelay/assets/images/reporelay-social-preview.png">
   <meta name="twitter:image:alt" content="RepoRelay product demo showing installation and a bounded local repository workflow">
   <link rel="stylesheet" href="/RepoRelay/assets/css/site.css">
-  <link rel="icon" href="/RepoRelay/assets/images/reporelay-logo-dark.png" type="image/png">
+  <link rel="icon" href="/RepoRelay/assets/images/favicon.svg" type="image/svg+xml">
   <script defer src="/RepoRelay/assets/js/site.js"></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "WebPage",
+        "@type": "TechArticle",
         "@id": "https://lukie-81.github.io/RepoRelay/security/#webpage",
         "url": "https://lukie-81.github.io/RepoRelay/security/",
-        "name": "Secure ChatGPT Web MCP Access to a Local Repository | RepoRelay",
-        "description": "Read RepoRelay's security model for ChatGPT Web local repository access: one canonical root, loopback authentication, containment checks, no shell access, fixed handoffs, audit, and limitations.",
+        "name": "RepoRelay security boundary - loopback, containment, fixed handoffs",
+        "description": "Read RepoRelay's security model for bounded MCP repository access: one canonical root, loopback authentication, containment checks, no shell access, fixed handoffs, audit, and limitations.",
+        "headline": "RepoRelay security boundary: loopback, containment, and fixed handoffs",
+        "datePublished": "2026-08-19",
+        "dateModified": "2026-08-23",
+        "author": {"@type": "Person", "name": "Lukie-81", "url": "https://github.com/Lukie-81"},
+        "mainEntityOfPage": "https://lukie-81.github.io/RepoRelay/security/",
         "isPartOf": {"@id": "https://lukie-81.github.io/RepoRelay/#website"},
         "about": {"@id": "https://lukie-81.github.io/RepoRelay/#software"},
-        "publisher": {"@id": "https://lukie-81.github.io/RepoRelay/#organization"},
         "breadcrumb": {"@id": "https://lukie-81.github.io/RepoRelay/security/#breadcrumb"}
       },
       {
@@ -56,13 +57,13 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="site-header"><div class="nav-wrap">
-    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a>
+    <a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay" width="321" height="376"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"></a>
     <nav class="nav-links" id="primary-navigation" data-nav aria-label="Primary navigation"><a href="/RepoRelay/docs/">Docs</a><a href="/RepoRelay/security/" aria-current="page">Security</a><a href="/RepoRelay/install/">Install</a></nav>
     <div class="nav-controls"><a class="button secondary" href="https://github.com/Lukie-81/RepoRelay">GitHub <span class="arrow" aria-hidden="true">↗</span></a><button class="theme-toggle" type="button" data-theme-toggle aria-label="Toggle dark mode" aria-pressed="false"><span class="moon" aria-hidden="true">☾</span><span class="sun" aria-hidden="true">☼</span></button><button class="nav-toggle" type="button" data-nav-toggle aria-controls="primary-navigation" aria-expanded="false"><span aria-hidden="true">☰</span><span class="sr-only">Toggle navigation</span></button></div>
   </div></header>
 
   <main id="main-content">
-    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Security</span></nav><p class="eyebrow">Read the source of truth</p><h1>How RepoRelay secures ChatGPT Web access to a local repository.</h1><p class="lede">RepoRelay is an authenticated, loopback-only MCP bridge for one explicitly approved repository. Its controls limit the tools and paths exposed to the reviewer; they do not turn the process into an operating-system sandbox.</p><div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">Read SECURITY.md on GitHub <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="/RepoRelay/install/">See the audit-first setup</a></div></section>
+    <section class="page-hero container"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/RepoRelay/">RepoRelay</a><span>/</span><span aria-current="page">Security</span></nav><p class="eyebrow">Read the source of truth</p><h1>A narrow application boundary, with explicit limits.</h1><p class="lede">RepoRelay is an authenticated, loopback-only MCP bridge for one explicitly approved repository. Its controls limit the tools and paths exposed to the reviewer; they do not turn the process into an operating-system sandbox.</p><p class="last-updated">Last updated: <time data-site-last-modified datetime="2026-08-23">August 23, 2026</time></p><div class="cta-row"><a class="button" href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">Read SECURITY.md on GitHub <span class="arrow" aria-hidden="true">↗</span></a><a class="button secondary" href="/RepoRelay/install/">See the audit-first setup</a></div></section>
 
     <section class="section compact" aria-labelledby="security-answer-title">
       <div class="container">
@@ -92,6 +93,6 @@ RESULT: PASS</pre></div><p>The audit validates the canonical root, loopback/auth
     <section class="section compact"><div class="container"><div class="callout warning"><strong>Operator rule:</strong> Never place bridge secrets, tunnel keys, personal paths, or runtime logs in source, examples, issues, or handoff files. Do not connect a repository containing credentials the reviewer should not receive.</div></div></section>
   </main>
 
-  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/faq/">FAQ</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/security.md">Security notes ↗</a><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Security claims should be checked against the current source</span></div></div></footer>
+  <footer class="site-footer"><div class="container"><div class="footer-grid"><div class="footer-brand"><a class="brand" href="/RepoRelay/" aria-label="RepoRelay home"><img class="logo-light" src="/RepoRelay/assets/images/reporelay-logo.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"><img class="logo-dark" src="/RepoRelay/assets/images/reporelay-logo-dark.png" alt="RepoRelay" width="321" height="376" loading="lazy" decoding="async"></a><p>Bounded local repository access for AI-assisted review. No hosted service, no machine-wide control.</p></div><div class="footer-col"><h3>Learn</h3><a href="/RepoRelay/">Home</a><a href="/RepoRelay/install/">Installation</a><a href="/RepoRelay/chatgpt-local-repo/">ChatGPT + local repo</a><a href="/RepoRelay/chatgpt-local-files/">Local files / no upload</a><a href="/RepoRelay/faq/">FAQ</a></div><div class="footer-col"><h3>Source</h3><a href="https://github.com/Lukie-81/RepoRelay/blob/main/SECURITY.md">SECURITY.md ↗</a><a href="https://github.com/Lukie-81/RepoRelay/blob/main/docs/security.md">Security notes ↗</a><a href="https://github.com/Lukie-81/RepoRelay">GitHub repository ↗</a></div></div><div class="footer-bottom"><span>RepoRelay / MIT License</span><span>Security claims should be checked against the current source</span></div></div></footer>
 </body>
 </html>
