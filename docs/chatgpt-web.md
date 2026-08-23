@@ -8,8 +8,25 @@ workflow is:
 ChatGPT Web -> Secure MCP Tunnel -> tunnel-client -> RepoRelay -> repository
 ```
 
-OpenAI owns the tunnel service, runtime-key permissions, and ChatGPT app UI.
-Use the current [Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+Setup touches three surfaces, and the tunnel and the ChatGPT integration are
+configured in different places:
+
+```text
+YOUR MACHINE        reporelay quickstart "<repo>" starts RepoRelay
+OPENAI PLATFORM     create the Secure MCP Tunnel + runtime API key
+CHATGPT             enable developer mode, then add RepoRelay
+                    (Plugins / custom MCP app flow), choosing the tunnel
+```
+
+The **tunnel** is created in OpenAI Platform. The **ChatGPT integration** that
+uses it is added **inside ChatGPT** — not on the Platform page where the
+tunnel was created.
+
+OpenAI owns the tunnel service, runtime-key permissions, and ChatGPT
+integration UI. In the current ChatGPT UI you may enter through **Plugins**;
+OpenAI documentation may still refer to the underlying integration as an
+**App** or **custom MCP app**. Use the current
+[Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
 and [ChatGPT Developer Mode and MCP apps guide](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt)
 when Platform or ChatGPT labels change.
 
@@ -33,13 +50,13 @@ the local MCP server and security boundary.
 
 The default quickstart port is 7676:
 
-```powershell
-reporelay quickstart "C:/Projects/my-app"
+```bash
+reporelay quickstart "$HOME/Projects/my-app"
 ```
 
 Keep this terminal open. The normal quickstart has **seven tools**. If you
-chose the optional inspection-only mode instead, add `--no-handoff-writes`;
-that mode has exactly four tools:
+chose read-only mode instead — recommended for personal ChatGPT plans,
+including Pro — add `--no-handoff-writes`; that mode has exactly four tools:
 
 ```text
 open_workspace
@@ -51,6 +68,11 @@ search_files
 If you run RepoRelay on a custom port (`--port 7677`), the managed tunnel
 configuration follows it automatically &mdash; quickstart records the live local
 endpoint, and `tunnel setup`/`doctor`/`run` all use it.
+
+Only the quickstart repository default depends on the current directory: when
+you omit the repository path, the current directory becomes the approved
+repository (the quickstart summary says so explicitly). The tunnel commands
+work from any directory once configured.
 
 ## 2. Create the OpenAI Secure MCP Tunnel
 
@@ -84,22 +106,23 @@ Create a runtime API key in OpenAI Platform:
 
 Do not use an Admin API key, and never paste any key into ChatGPT.
 
-In a second PowerShell window, run:
+In a second terminal window, run:
 
-```powershell
+```bash
 reporelay tunnel setup
 ```
 
 Setup automatically detects your OS and CPU, downloads the pinned
 RepoRelay-supported `tunnel-client` release, verifies its SHA-256 checksum
-before running anything, and stores it under `%LOCALAPPDATA%\RepoRelay`. On a
-repeat run it reuses the already-verified installation instead of
-redownloading.
+before running anything, and stores it in RepoRelay's per-user configuration
+directory (`%LOCALAPPDATA%\RepoRelay` on Windows, `~/.reporelay` on
+macOS/Linux). On a repeat run it reuses the already-verified installation
+instead of redownloading.
 
 If your RepoRelay runs on a custom port, either rely on the automatically
 discovered live endpoint or set it explicitly:
 
-```powershell
+```bash
 reporelay tunnel setup --port 7677
 ```
 
@@ -112,7 +135,8 @@ user-facing bridge-header variable. Add `--no-open` on headless or SSH systems
 so RepoRelay prints the page URLs instead of launching a browser.
 
 Setup preserves an existing bridge secret and runtime-key file. It writes this
-per-user layout under `%LOCALAPPDATA%\RepoRelay`:
+per-user layout (Windows paths shown; on macOS/Linux the root is `~/.reporelay`
+and the executable is `tunnel-client` without `.exe`):
 
 ```text
 reporelay-bridge-secret.txt
@@ -152,7 +176,7 @@ runtime key or bridge secret into ChatGPT, Git, logs, or handoff files.
 
 Run:
 
-```powershell
+```bash
 reporelay tunnel doctor
 ```
 
@@ -192,7 +216,7 @@ redacted diagnostics, then correct the indicated layer:
 | --- | --- |
 | `tunnel-client` missing | Rerun `reporelay tunnel setup`; it re-downloads and verifies the managed client. |
 | Profile or credential file missing | Rerun `reporelay tunnel setup`; it preserves existing credentials. |
-| Runtime credential rejected | Confirm the Platform runtime API key and tunnel ID; do not use an admin key for the daemon. |
+| Runtime credential rejected | Check that the tunnel is associated with the target ChatGPT workspace (not only a Platform organization), that the key belongs to the same OpenAI organization/project as the tunnel, and that your account has Tunnels Read + Use. Rerun `reporelay tunnel setup --replace-runtime-key`. |
 | Control plane unreachable | RepoRelay could not contact OpenAI to validate the credential. Check your internet connection, then rerun the doctor. |
 | MCP unreachable | Keep the RepoRelay quickstart terminal running on the configured local endpoint (default `127.0.0.1:7676`), then rerun the doctor. |
 | Bridge authentication failed | Confirm the canonical RepoRelay bridge-secret file is present and rerun setup. |
@@ -201,7 +225,7 @@ redacted diagnostics, then correct the indicated layer:
 
 After doctor passes, start the foreground client:
 
-```powershell
+```bash
 reporelay tunnel run
 ```
 
@@ -209,33 +233,40 @@ The wrapper runs the configured `reporelay` profile and leaves `tunnel-client`
 in the foreground. Keep both the RepoRelay and tunnel terminals open. Stop the
 tunnel with Ctrl+C.
 
-## 6. Create or use the ChatGPT app
+## 6. Add RepoRelay to ChatGPT
 
-In ChatGPT, use the current OpenAI app flow (see the
+This step happens **inside ChatGPT** — not on the OpenAI Platform page where
+the tunnel was created. In the current ChatGPT UI you may enter through
+**Plugins**; OpenAI documentation may still refer to the underlying
+integration as an **App** or **custom MCP app** (see the
 [developer-mode and MCP apps guide](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt)):
 
 ```text
 ChatGPT
-→ Apps / developer features
+→ enable Developer Mode in settings
+  (exact location varies by plan/workspace as OpenAI updates the UI)
+→ Plugins / developer features
 → create custom MCP app
 → connection: Tunnel
 → choose RepoRelay's tunnel
 → authentication: No authentication
 → Scan Tools
-→ verify 7 tools
-→ create/use the app
+→ verify the tool count: 4 in read-only mode, 7 with handoffs
+→ create/use the integration
 → start a new chat
 ```
 
-1. Enable Developer Mode, or ask the workspace administrator for access.
+1. Enable **Developer Mode** in ChatGPT settings, or ask the workspace
+   administrator for access. The exact location of the setting may vary by
+   plan or workspace as OpenAI updates the interface.
 2. Create a custom MCP app and choose the **Tunnel** connection.
 3. Select the tunnel associated with the target ChatGPT workspace.
 4. When ChatGPT asks for authentication, select **No authentication**.
-5. Save or create the app. Do not enter `127.0.0.1`, `localhost`, or either
-   credential.
+5. Save or create the integration. Do not enter `127.0.0.1`, `localhost`, or
+   either credential.
 6. Run **Scan Tools**, review the returned tools, and verify the expected
    RepoRelay tools appear.
-7. In a new chat, select the RepoRelay app.
+7. In a new chat, select the RepoRelay integration.
 
 > **Authentication: No authentication.** RepoRelay already authenticates the
 > local bridge through the protected `X-RepoRelay-Bridge-Secret` used by the
@@ -243,9 +274,9 @@ ChatGPT
 
 The normal quickstart exposes exactly seven tools (the four read-only tools
 above, plus `write_next_task`, `write_review`, and `update_handoff_state`).
-Read-only mode exposes exactly four. Stop if Scan Tools shows shell, Git,
-process execution, arbitrary file editing, delete, or another unexpected
-capability.
+Read-only mode exposes exactly four. A different count usually means the other
+mode is running. Stop if Scan Tools shows shell, Git, process execution,
+arbitrary file editing, delete, or another unexpected capability.
 
 ## Security notes
 

@@ -2,33 +2,41 @@
 
 ## Install from a checkout
 
-```powershell
+```bash
 npm ci
 npm run build
 ```
 
+npm is the supported global installer (`npm install -g reporelay-mcp@latest`).
 After a global or local npm install, the public command is `reporelay`. In a
-checkout, `node dist/cli.js` is equivalent.
+checkout, `node dist/cli.js` is equivalent. If `reporelay` cannot be found
+after installing with another package manager (Bun, pnpm, yarn), that package
+manager's global-bin directory is probably not on your `PATH`; fix its PATH
+configuration or reinstall with npm.
 
 ## Quickstart
 
 The recommended default is the 7-tool handoff surface:
 
-```powershell
-reporelay quickstart "C:\path\to\approved-repository"
+```bash
+reporelay quickstart "$HOME/Projects/approved-repository"
 ```
 
 The command requires a real repository directory narrower than the operator's
-home directory. It creates missing `.ai-handoff` targets without replacing
-existing ones, generates a 32-byte bridge secret, starts the loopback server,
-and checks missing/wrong authentication plus the exact tool surface.
+home directory. When you omit the repository path, the current directory
+becomes the approved repository and the summary says so explicitly; only this
+default depends on the current directory, and the tunnel commands work from
+any directory once configured. Quickstart creates missing `.ai-handoff`
+targets without replacing existing ones, generates a 32-byte bridge secret,
+starts the loopback server, and checks missing/wrong authentication plus the
+exact tool surface.
 
 The default quickstart exposes exactly 7 tools (4 inspection + 3 fixed handoff
-writers). The optional inspection-only mode exposes exactly 4 tools and leaves
-the repository unchanged:
+writers). The read-only mode — recommended for personal ChatGPT plans,
+including Pro — exposes exactly 4 tools and leaves the repository unchanged:
 
-```powershell
-reporelay quickstart "C:\path\to\approved-repository" --no-handoff-writes
+```bash
+reporelay quickstart "$HOME/Projects/approved-repository" --no-handoff-writes
 ```
 
 Read-only mode does not create `.ai-handoff`, does not create or modify
@@ -48,9 +56,9 @@ After quickstart, run an independent audit. It starts its own temporary
 authenticated loopback listener and exercises the real MCP surface plus
 disposable containment fixtures:
 
-```powershell
-reporelay audit "C:\path\to\approved-repository"
-reporelay audit "C:\path\to\approved-repository" --json
+```bash
+reporelay audit "$HOME/Projects/approved-repository"
+reporelay audit "$HOME/Projects/approved-repository" --json
 ```
 
 If you used `--no-handoff-writes` for quickstart, add that flag to the audit

@@ -100,6 +100,8 @@ carries ChatGPT traffic to your computer.
                          write_next_task, write_review, update_handoff_state
 ```
 
+In read-only mode, only the four read/search tools are exposed.
+
 **What ChatGPT cannot do:**
 
 ```text
@@ -118,6 +120,30 @@ against your code, but it gets **no execution capability** and can only write to
 a few fixed handoff files you control.
 
 ## Before you install
+
+### Which mode should I use?
+
+RepoRelay runs in two modes. The right one depends on your ChatGPT plan and
+workspace:
+
+| Mode | Start command | Tools in Scan Tools |
+| --- | --- | --- |
+| **Read-only** | `reporelay quickstart "<repo>" --no-handoff-writes` | **4** |
+| **Handoff** (default) | `reporelay quickstart "<repo>"` | **7** |
+
+- **Personal ChatGPT plans, including Pro:** use **read-only mode**. ChatGPT
+  can open, read, and search the repository, but cannot write handoff files.
+  Expect **4 tools**.
+- **Business / Enterprise / Edu workspaces:** available capabilities depend on
+  your plan and workspace/admin settings. Where developer features and
+  handoffs are enabled, the normal setup exposes **7 tools** (4 read/search +
+  3 fixed handoff writers).
+
+Both modes share the same security boundary; read-only mode simply disables
+the three handoff writers. OpenAI plan and workspace behavior changes over
+time, so treat this as guidance and check the current
+[OpenAI Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
+for what your account offers.
 
 You need:
 
@@ -141,9 +167,38 @@ handoff files for you and explains them as you go.
 
 ## Quick setup
 
-> **Windows paths.** Always quote the full path and keep the backslashes:
+### Where setup happens
+
+Setup touches three different surfaces, and the tunnel and the ChatGPT
+integration are configured in **different places**:
+
+```text
+YOUR MACHINE          reporelay quickstart "<repo>"
+                      starts RepoRelay against ONE repository
+        ↓
+OPENAI PLATFORM       create the Secure MCP Tunnel + runtime API key
+                      (reporelay tunnel setup walks you through it)
+        ↓
+CHATGPT               enable developer mode, then add RepoRelay
+                      through the Plugins / custom MCP app flow,
+                      choosing the tunnel you created
+```
+
+The **Secure MCP Tunnel** is created and configured in OpenAI Platform. The
+**ChatGPT integration** that uses the tunnel is added **inside ChatGPT** — not
+on the Platform page where you created the tunnel. If you already have a
+tunnel and are wondering "where do I actually add RepoRelay to ChatGPT?", that
+is step 6 below, inside ChatGPT itself.
+
+> **Path examples.** Always quote the repository path:
+>
+> ```bash
+> # macOS / Linux
+> reporelay quickstart "$HOME/Projects/my-app"
+> ```
 >
 > ```powershell
+> # Windows PowerShell — keep the backslashes
 > reporelay quickstart "C:\Users\you\Projects\my-app"
 > ```
 >
@@ -152,26 +207,34 @@ handoff files for you and explains them as you go.
 
 ### 1. Install RepoRelay
 
-```powershell
+```bash
 npm install -g reporelay-mcp@latest
 ```
 
-Check the install:
+npm is the supported and tested installer. Check the install:
 
-```powershell
+```bash
 reporelay --version
 ```
 
-If `reporelay` is not recognized, see [Troubleshooting](#troubleshooting).
+If `reporelay` cannot be found (`command not found` on macOS/Linux, `is not
+recognized` on Windows), see [Troubleshooting](#troubleshooting).
 
 ### 2. Start RepoRelay on one repository
 
-```powershell
-reporelay quickstart "C:\Projects\my-app"
+```bash
+reporelay quickstart "$HOME/Projects/my-app"
 ```
 
-Replace the path with the repository you want to expose. Keep this PowerShell
-window open.
+Replace the path with the repository you want to expose (Windows example:
+`reporelay quickstart "C:\Projects\my-app"`). Keep this terminal open.
+
+**No path? The current directory is only a default.** If you omit the
+repository path, `quickstart` uses the directory you are standing in and says
+so in its summary. Only this default depends on the current directory —
+`reporelay tunnel setup`, `tunnel doctor`, and `tunnel run` read stored
+per-user configuration and work from any directory. The tunnel does not need
+to be started from the repository directory.
 
 You should see:
 
@@ -193,6 +256,10 @@ reviews for a separate local coding agent:
 AGENTS.md
 ```
 
+Using read-only mode instead (`--no-handoff-writes`, the recommended mode for
+personal ChatGPT plans)? RepoRelay exposes the 4 read/search tools and creates
+none of these files. See [Read-only mode](#read-only-mode---no-handoff-writes).
+
 **Why does RepoRelay create these?** ChatGPT still cannot run commands, use
 Git, or arbitrarily edit your repository. These files are simply a place where
 ChatGPT can leave a task, and a separate local coding agent (running on your
@@ -206,8 +273,8 @@ To stop RepoRelay later, press **Ctrl+C** in this window. There is no
 
 Immediately after quickstart, verify RepoRelay's actual security boundary:
 
-```powershell
-reporelay audit "C:\Projects\my-app"
+```bash
+reporelay audit "$HOME/Projects/my-app"
 ```
 
 You should see:
@@ -219,13 +286,14 @@ RESULT: PASS
 Audit starts its own temporary loopback listener and exercises the real
 authenticated MCP surface, containment checks, and handoff restrictions. It
 does not modify your repository. This validates RepoRelay *before* ChatGPT is
-connected.
+connected. If you started quickstart with `--no-handoff-writes`, add the same
+flag to the audit command.
 
 ### 4. Run RepoRelay tunnel setup
 
-In a **second** PowerShell window, run:
+In a **second** terminal window, run:
 
-```powershell
+```bash
 reporelay tunnel setup
 ```
 
@@ -293,9 +361,9 @@ Useful options:
 - `reporelay tunnel setup --replace-tunnel` — prompt for a new tunnel ID.
 - `reporelay tunnel setup --replace-runtime-key` — prompt for a new runtime
   API key.
-- `reporelay tunnel setup --tunnel-client-path "C:\custom\tunnel-client.exe"`
-  — **advanced override** for unusual environments; RepoRelay does not verify
-  or manage a custom binary.
+- `reporelay tunnel setup --tunnel-client-path "/path/to/tunnel-client"`
+  (Windows: `tunnel-client.exe`) — **advanced override** for unusual
+  environments; RepoRelay does not verify or manage a custom binary.
 
 Re-running `reporelay tunnel setup` reuses your existing verified client,
 tunnel ID, and stored key, and re-tests the connection without asking for
@@ -303,7 +371,7 @@ anything again.
 
 ### 5. Run the tunnel
 
-```powershell
+```bash
 reporelay tunnel run
 ```
 
@@ -314,34 +382,46 @@ If the connection ever stops working, `reporelay tunnel doctor` remains
 available as a standalone troubleshooting command (expect `Ready.` when
 everything is healthy; add `--verbose` for redacted diagnostics).
 
-### 6. Create the ChatGPT app
+### 6. Add RepoRelay to ChatGPT
 
-In ChatGPT, using the current OpenAI flow (see the
-[ChatGPT developer-mode and MCP apps guide](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt)):
+This step happens **inside ChatGPT** — not on the OpenAI Platform page where
+you created the tunnel.
+
+Naming note: the current ChatGPT UI may have you enter through **Plugins**,
+while OpenAI documentation may still refer to the underlying integration as an
+**App** or **custom MCP app**. This guide just says "the RepoRelay
+integration." See the current
+[ChatGPT developer-mode and MCP apps guide](https://help.openai.com/en/articles/12584461-developer-mode-and-mcp-apps-in-chatgpt)
+when labels move.
 
 ```text
 ChatGPT
-→ Apps / developer features
+→ enable Developer Mode in settings
+  (exact location varies by plan/workspace as OpenAI updates the UI)
+→ Plugins / developer features
 → create custom MCP app
 → connection: Tunnel
 → choose RepoRelay's tunnel
 → authentication: No authentication
 → Scan Tools
-→ verify 7 tools
-→ create/use the app
+→ verify the tool count: 4 in read-only mode, 7 with handoffs
+→ create/use the integration
 → start a new chat
 ```
 
 Follow this sequence:
 
-1. Create the custom MCP app.
-2. Choose the **Tunnel** connection.
-3. Select the RepoRelay/OpenAI Secure MCP Tunnel.
-4. When ChatGPT asks for authentication, select **No authentication**.
-5. Save or create the app.
-6. Run **Scan Tools**.
-7. Verify the expected RepoRelay tools appear.
-8. Start a new chat and select the RepoRelay app.
+1. Enable **Developer Mode** in ChatGPT settings, or ask your workspace
+   administrator for access. The exact location of the setting may vary by
+   plan or workspace as OpenAI updates the interface.
+2. Create the custom MCP app.
+3. Choose the **Tunnel** connection.
+4. Select the RepoRelay/OpenAI Secure MCP Tunnel.
+5. When ChatGPT asks for authentication, select **No authentication**.
+6. Save or create the integration.
+7. Run **Scan Tools**.
+8. Verify the expected RepoRelay tools appear.
+9. Start a new chat and select the RepoRelay integration.
 
 > **Authentication: No authentication.** RepoRelay already authenticates the
 > local bridge through the protected `X-RepoRelay-Bridge-Secret` used by the
@@ -350,29 +430,37 @@ Follow this sequence:
 Never paste `127.0.0.1`, `localhost`, the RepoRelay bridge secret, or an OpenAI
 runtime API key into ChatGPT. The tunnel connection does all the networking.
 
-### 7. Scan and verify the 7 RepoRelay tools
+### 7. Scan and verify the RepoRelay tools
 
-In the ChatGPT app flow, run **Scan Tools** and confirm RepoRelay exposes
-exactly these seven tools:
+In the ChatGPT integration flow, run **Scan Tools** and confirm that the tool
+count matches your mode.
+
+**Read-only mode (`--no-handoff-writes`) — exactly 4 tools:**
 
 ```text
 open_workspace
 list_files
 read_file
 search_files
+```
+
+**Normal handoff mode — exactly 7 tools** (the four above, plus):
+
+```text
 write_next_task
 write_review
 update_handoff_state
 ```
 
-That is the expected normal surface. If Scan Tools shows shell, Git, process
-execution, generic file editing, delete, patching, or any other unexpected
-capability, **stop and investigate** before using the app &mdash; run
-`reporelay audit "C:\Projects\my-app" --json` and confirm the tool list.
+A different count usually means the other mode is running. If Scan Tools shows
+shell, Git, process execution, generic file editing, delete, patching, or any
+other unexpected capability, **stop and investigate** before using the
+integration &mdash; run `reporelay audit "<repo>" --json` and confirm the tool
+list.
 
 ### 8. Test it
 
-Start a new chat, select the RepoRelay app, and try:
+Start a new chat, select the RepoRelay integration, and try:
 
 ```text
 Open the approved repository and list its top-level files.
@@ -444,25 +532,29 @@ and [examples/](examples/) for reviewer and implementer prompts.
 
 ## Daily use
 
-After the one-time setup, do not recreate the tunnel or the ChatGPT app. Each
-day:
+After the one-time setup, do not recreate the tunnel or the ChatGPT
+integration. Each day:
 
 1. Start RepoRelay:
 
-   ```powershell
-   reporelay quickstart "C:\Projects\my-app"
+   ```bash
+   reporelay quickstart "$HOME/Projects/my-app"
    ```
 
 2. Start the tunnel (in a second window):
 
-   ```powershell
+   ```bash
    reporelay tunnel run
    ```
 
-3. Open ChatGPT, start a new chat, and select the existing RepoRelay app.
+3. Open ChatGPT, start a new chat, and select the existing RepoRelay
+   integration.
 
-Keep both windows open while you use the app. If the connection stops working,
-run `reporelay tunnel doctor` again.
+Both commands can be run from any directory: quickstart takes the repository
+path explicitly, and the tunnel reads its stored per-user configuration.
+
+Keep both windows open while you use the integration. If the connection stops
+working, run `reporelay tunnel doctor` again.
 
 ## Switch repositories
 
@@ -471,14 +563,14 @@ run `reporelay tunnel doctor` again.
 1. Press **Ctrl+C** in the RepoRelay terminal.
 2. Start RepoRelay for the new repository:
 
-   ```powershell
-   reporelay quickstart "C:\Projects\another-repo"
+   ```bash
+   reporelay quickstart "$HOME/Projects/another-repo"
    ```
 
 3. Keep `tunnel-client` running. It reconnects to the restarted RepoRelay
    automatically (same port and protected bridge-secret file). If you used a
    different port, the managed tunnel follows it automatically.
-4. Start a new ChatGPT conversation and select the RepoRelay app.
+4. Start a new ChatGPT conversation and select the RepoRelay integration.
 5. Ask ChatGPT to open the new repository.
 
 Do not rescan tools just because the approved repository changed. Rescan only
@@ -488,9 +580,10 @@ if the tool definitions changed or ChatGPT asks you to.
 
 | You see | What to do |
 | --- | --- |
-| `'node' is not recognized` | Node.js is not installed, or PowerShell was opened before the install finished. Install Node.js from <https://nodejs.org>, close and reopen PowerShell, and check `node --version`. |
-| `RepoRelay requires Node.js >=22.19 and <27` | Your Node version is unsupported. Install a supported Node.js LTS release, reopen PowerShell, and check `node --version`. |
-| `'reporelay' is not recognized` | The npm install did not finish or PowerShell was opened before it finished. Re-run `npm install -g reporelay-mcp@latest`, close and reopen PowerShell, and try `reporelay --version`. |
+| `'node' is not recognized` / `node: command not found` | Node.js is not installed, or the terminal was opened before the install finished. Install Node.js from <https://nodejs.org>, close and reopen the terminal, and check `node --version`. |
+| `RepoRelay requires Node.js >=22.19 and <27` | Your Node version is unsupported. Install a supported Node.js LTS release, reopen the terminal, and check `node --version`. |
+| `'reporelay' is not recognized` (Windows) | The npm install did not finish or the terminal was opened before it finished. Re-run `npm install -g reporelay-mcp@latest`, close and reopen the terminal, and try `reporelay --version`. |
+| `reporelay: command not found` (macOS/Linux) | The `reporelay` binary is not on your `PATH`. npm is the supported installer — re-run `npm install -g reporelay-mcp@latest` and reopen the terminal. If you installed globally with another package manager (Bun, pnpm, yarn), its global-bin directory may not be on your `PATH`; fix that package manager's PATH setting or reinstall with npm. Invoking `node .../node_modules/reporelay-mcp/dist/cli.js` through a nested package-manager path is a workaround, not a supported install. |
 | `Cannot find module ... dist\cli.js` | You are running from a source checkout in the wrong folder. `cd` into the `RepoRelay` folder and run `npm run build` first. |
 | `C:Users\you\...` (path looks mangled) | You dropped the backslashes. Quote the full Windows path: `reporelay quickstart "C:\Users\you\Projects\my-app"`. |
 | Repository does not exist / not a directory | RepoRelay requires an existing directory. Double-check the quoted path and that the folder exists. |
@@ -499,31 +592,32 @@ if the tool definitions changed or ChatGPT asks you to.
 | Quickstart stops about an existing `AGENTS.md` | The repository already has an `AGENTS.md` without the RepoRelay marker. RepoRelay will not overwrite it. Review the file first; if you want RepoRelay to preserve it and append the marked handoff instructions, rerun `reporelay quickstart "..." --append-agent-instructions`. |
 | `tunnel-client` missing | Rerun `reporelay tunnel setup`; it re-downloads and verifies the managed client. |
 | Invalid tunnel ID | The ID must look like `tunnel_` followed by 32 hex characters. Copy it again from Platform tunnel settings. |
-| Runtime credential rejected | Confirm the runtime API key and tunnel ID in Platform, and that your account has **Tunnels Read + Use**. Rerun `reporelay tunnel setup`. |
+| Runtime credential rejected | The runtime API key or tunnel context was not accepted. Check that the tunnel is associated with the target ChatGPT workspace (not only a Platform organization), that the key belongs to the same OpenAI organization/project as the tunnel, and that your account has **Tunnels Read + Use**. Rerun `reporelay tunnel setup --replace-runtime-key`. |
 | Control plane unreachable | RepoRelay could not contact OpenAI to validate the credential. Check your internet connection, then rerun `reporelay tunnel doctor`. |
 | Tunnel doctor cannot reach MCP | Keep the RepoRelay quickstart window running on the configured port, then rerun `reporelay tunnel doctor`. |
 | Bridge authentication failure | Do not paste a secret. Confirm quickstart is using the canonical bridge-secret file, then rerun `reporelay tunnel setup`. |
 | ChatGPT cannot see the tunnel | Check that the tunnel is associated with the target ChatGPT workspace (not only a Platform organization) and that you have tunnel-use permission. |
-| Scan Tools returns zero tools | Keep both the RepoRelay and tunnel windows open, confirm `reporelay tunnel doctor` reports `Ready.`, then rescan in a **new** app/chat. |
-| Scan Tools shows unexpected tools | Stop and investigate before using the app: run `reporelay audit "C:\Projects\my-app" --json` and confirm the expected 7-tool list. |
-| RepoRelay window was closed | RepoRelay stopped. Restart it with `reporelay quickstart "C:\Projects\my-app"`, then try again in a new chat. |
+| Scan Tools returns zero tools | Keep both the RepoRelay and tunnel windows open, confirm `reporelay tunnel doctor` reports `Ready.`, then rescan in a **new** chat with the RepoRelay integration selected. |
+| Scan Tools shows unexpected tools | Stop and investigate before using the integration: run `reporelay audit "<repo>" --json` and confirm the expected list — 4 tools in read-only mode, 7 with handoff writes. |
+| RepoRelay window was closed | RepoRelay stopped. Restart it with `reporelay quickstart "<repo>"`, then try again in a new chat. |
 | Tunnel window was closed | `tunnel-client` stopped. Restart it with `reporelay tunnel run`, then try again in a new chat. |
 | Custom port mismatch | Confirm the RepoRelay quickstart port matches what `reporelay tunnel doctor` reports as the local MCP endpoint. Quickstart records the live endpoint automatically, or set it explicitly with `reporelay tunnel setup --port <port>`. |
 
 For anything else, run `reporelay doctor`. It prints configuration and security
 status without printing secret values.
 
-## Optional read-only mode
+## Read-only mode (--no-handoff-writes)
 
-The normal RepoRelay experience is the **7-tool handoff surface** above, and it
-is the recommended beginner setup. If you specifically want ChatGPT to
-**inspect only** &mdash; no handoff files, no writes at all &mdash; start with:
+Read-only mode is the recommended workflow for **personal ChatGPT plans,
+including Pro** (see [Which mode should I use?](#which-mode-should-i-use)),
+and for anyone who wants ChatGPT to **inspect only** &mdash; no handoff files,
+no writes at all:
 
-```powershell
-reporelay quickstart "C:\Projects\my-app" --no-handoff-writes
+```bash
+reporelay quickstart "$HOME/Projects/my-app" --no-handoff-writes
 ```
 
-In this optional mode RepoRelay exposes exactly four tools:
+In this mode RepoRelay exposes exactly four tools:
 
 ```text
 open_workspace
@@ -536,8 +630,8 @@ Read-only mode does **not** create `.ai-handoff`, does **not** create or modify
 `AGENTS.md`, and leaves the approved repository unchanged. All containment,
 authentication, and security checks still apply. Use the matching audit flag:
 
-```powershell
-reporelay audit "C:\Projects\my-app" --no-handoff-writes
+```bash
+reporelay audit "$HOME/Projects/my-app" --no-handoff-writes
 ```
 
 When you use this mode, expect **4 tools** in Scan Tools instead of 7.
@@ -584,7 +678,7 @@ Most users never need these. When you do:
 
 For configuration and security status without printing secret values:
 
-```powershell
+```bash
 reporelay doctor
 ```
 
@@ -593,9 +687,10 @@ reporelay doctor
 - Node.js `>=22.19 <27` (npm is included);
 - Git for the clone-based install — optional if you download the ZIP instead.
 
-The quickstart in this README works on Windows, macOS, and Linux. Windows 10/11
-is the fully validated lifecycle and operational platform, including the
-PowerShell scripts and tunnel-managed runbook.
+The quickstart in this README works on Windows, macOS, and Linux; npm is the
+supported installer. Windows 10/11 is the fully validated lifecycle and
+operational platform, including the PowerShell scripts and tunnel-managed
+runbook.
 
 ## Limitations
 
@@ -627,7 +722,7 @@ Codex, Claude, or other implementers.
 
 ## Development
 
-```powershell
+```bash
 npm ci
 npm run typecheck
 npm test
