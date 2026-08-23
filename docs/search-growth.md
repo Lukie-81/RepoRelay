@@ -22,6 +22,13 @@ When a directory has stale metadata, first verify the repository source,
 edit through that directory's normal maintainer process. Do not change the
 security model or tool surface to satisfy a crawler.
 
+The published npm `reporelay-mcp@1.2.5` record still has the older GitHub
+README homepage, even though the repository package metadata now points to the
+Pages site. npm updates that public field only when a package is published, so
+carry the corrected metadata into the next legitimate release and verify it
+with `npm view reporelay-mcp homepage`. Do not publish a version solely to
+change SEO metadata.
+
 ## Backlink target map
 
 When an external article or discussion genuinely covers one of these topics,
