@@ -6,6 +6,7 @@ import { createServer as createTcpServer } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
+import { parseQuickstartArgs, quickstartRepositoryNotice } from "./cli.js";
 import {
   ensureQuickstartBridgeSecret,
   initializeHandoffFiles,
@@ -148,5 +149,21 @@ try {
 } finally {
   await syncRuntime.stop();
 }
+
+// ---- Quickstart repository-path default is explicit ------------------------
+
+const noPathArgs = parseQuickstartArgs([]);
+assert.equal(noPathArgs.repositoryRootProvided, false, "omitting the repository path must be detectable");
+assert.equal(noPathArgs.repositoryRoot, process.cwd(), "the repository root must default to the current directory");
+const explicitPathArgs = parseQuickstartArgs(["/explicit/repository"]);
+assert.equal(explicitPathArgs.repositoryRootProvided, true);
+assert.equal(explicitPathArgs.repositoryRoot, "/explicit/repository");
+
+const notice = quickstartRepositoryNotice("/Users/example/code/project");
+assert.ok(notice.some((line) => line.includes("No repository path supplied")), "the notice must state that no path was supplied");
+assert.ok(notice.some((line) => line.includes("/Users/example/code/project")), "the notice must name the resolved directory");
+assert.ok(notice.some((line) => line.includes("reporelay quickstart")), "the notice must show the explicit-path tip");
+assert.ok(notice.some((line) => line.toLowerCase().includes("any directory")), "the notice must state the tunnel is not tied to the repository directory");
+assert.ok(notice.some((line) => line.includes("approved repository")), "the notice must frame the directory as the approved repository");
 
 console.log(`Quickstart fixtures preserved at ${runRoot}`);

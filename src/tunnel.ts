@@ -48,11 +48,13 @@ const TUNNEL_CLIENT_DOWNLOAD_URL = "https://github.com/openai/tunnel-client/rele
 
 export const CHATGPT_COMPLETION_CHECKLIST: readonly string[] = [
   "ChatGPT Web completion checklist:",
-  "  1. Create or select the custom MCP app in ChatGPT.",
+  "  1. In ChatGPT (developer mode enabled), add RepoRelay as a custom MCP app",
+  "     through the current developer flow — the UI may label this Apps or Plugins.",
   "  2. Choose the tunnel connection and select this tunnel.",
   "  3. When asked for authentication, select No authentication.",
   "  4. Run Scan Tools and verify the tools: exactly 7 with handoffs, or exactly 4 in read-only mode.",
-  "  5. Start a new chat and select the RepoRelay app.",
+  "  5. Start a new chat and select the RepoRelay integration.",
+  "The app is added inside ChatGPT, not on the OpenAI Platform tunnel page.",
   "Do not enter 127.0.0.1 or localhost, and never paste the runtime API key or bridge secret into ChatGPT.",
 ];
 
@@ -414,15 +416,36 @@ function describeSetupDoctorFailure(diagnostics: string): string {
     return notRunningMessage();
   }
   if (/control plane rejected|could not find the tunnel/.test(lower)) {
-    return "The OpenAI runtime credential or tunnel ID was not accepted. Check them in OpenAI Platform, then retry.";
+    return runtimeCredentialRemediation(lower.includes("could not find the tunnel"), "Then rerun `reporelay tunnel setup` (add `--replace-runtime-key` to enter a new key).");
   }
   if (/network error while contacting the openai control plane/.test(lower)) {
     return "Could not reach the OpenAI control plane. Check your internet connection, then retry.";
   }
   if (/api key|api_key|tunnel id|tunnel_id|control_plane/.test(lower)) {
-    return "The OpenAI runtime credential or tunnel ID was not accepted. Check them in OpenAI Platform, then retry.";
+    return runtimeCredentialRemediation(false, "Then rerun `reporelay tunnel setup` (add `--replace-runtime-key` to enter a new key).");
   }
   return "The connection could not be verified. Troubleshoot with `reporelay tunnel doctor --verbose`.";
+}
+
+/**
+ * Targeted remediation when OpenAI rejects the runtime credential or tunnel
+ * lookup. The common causes are context mismatches — a tunnel not associated
+ * with the ChatGPT workspace, or a key from a different organization/project —
+ * not just a mistyped key. Never includes secret values.
+ */
+function runtimeCredentialRemediation(tunnelNotFound: boolean, retryLine: string): string {
+  return [
+    tunnelNotFound
+      ? "The OpenAI control plane could not find this tunnel for the runtime credential."
+      : "The OpenAI runtime credential or tunnel ID was not accepted.",
+    "",
+    "Check that:",
+    "- the tunnel is associated with the ChatGPT workspace you intend to use (a tunnel tied only to a Platform organization is not selectable in ChatGPT);",
+    "- the runtime credential belongs to the same OpenAI organization/project context as the tunnel;",
+    "- your account has Tunnels Read + Use permission for the tunnel.",
+    "",
+    retryLine,
+  ].join("\n");
 }
 
 function notRunningMessage(): string {
@@ -431,7 +454,7 @@ function notRunningMessage(): string {
     "",
     "Start it in another terminal:",
     "",
-    "  reporelay quickstart \"C:\\path\\to\\your-project\"",
+    "  reporelay quickstart \"<your-repository-path>\"",
     "",
     "Keep that terminal open, then retry:",
     "",
@@ -741,13 +764,13 @@ function nextDoctorStep(diagnostics: string): string {
     return "Start RepoRelay with `reporelay quickstart <repository>` (add `--port <port>` if you configured a custom port) and rerun the doctor.";
   }
   if (/control plane rejected|could not find the tunnel/.test(lower)) {
-    return "Check the tunnel ID and the protected runtime API-key file, then rerun the doctor.";
+    return runtimeCredentialRemediation(lower.includes("could not find the tunnel"), "Then rerun `reporelay tunnel doctor` (`reporelay tunnel setup --replace-runtime-key` enters a new key).");
   }
   if (/network error while contacting the openai control plane/.test(lower)) {
     return "Check your internet connection and rerun the doctor.";
   }
   if (/api key|api_key|tunnel id|tunnel_id|control_plane/.test(lower)) {
-    return "Check the tunnel ID and the protected runtime API-key file, then rerun the doctor.";
+    return runtimeCredentialRemediation(false, "Then rerun `reporelay tunnel doctor` (`reporelay tunnel setup --replace-runtime-key` enters a new key).");
   }
   return "Check the tunnel-client quickstart guidance and rerun the doctor.";
 }

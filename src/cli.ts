@@ -59,8 +59,9 @@ function assertSupportedNode(): void {
   if (!supported) throw new Error(`RepoRelay requires Node.js >=22.19 and <27; found ${process.version}.`);
 }
 
-interface QuickstartArgs {
+export interface QuickstartArgs {
   repositoryRoot: string;
+  repositoryRootProvided: boolean;
   port: number;
   secretFile?: string;
   appendAgentInstructions: boolean;
@@ -89,9 +90,9 @@ interface TunnelDoctorArgs {
   tunnelClientPath?: string;
 }
 
-function parseQuickstartArgs(args: string[]): QuickstartArgs {
+export function parseQuickstartArgs(args: string[]): QuickstartArgs {
   const positional: string[] = [];
-  const parsed: QuickstartArgs = { repositoryRoot: process.cwd(), port: 7676, appendAgentInstructions: false, handoffWrites: true };
+  const parsed: QuickstartArgs = { repositoryRoot: process.cwd(), repositoryRootProvided: false, port: 7676, appendAgentInstructions: false, handoffWrites: true };
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
     if (arg === "--port") {
@@ -109,12 +110,39 @@ function parseQuickstartArgs(args: string[]): QuickstartArgs {
     else if (arg) positional.push(arg);
   }
   if (positional.length > 1) throw new Error("Usage: reporelay quickstart [repository-root] [--port <port>] [--secret-file <path>] [--append-agent-instructions] [--no-handoff-writes]");
-  if (positional[0]) parsed.repositoryRoot = positional[0];
+  if (positional[0]) {
+    parsed.repositoryRoot = positional[0];
+    parsed.repositoryRootProvided = true;
+  }
   return parsed;
+}
+
+/**
+ * Explains that the current directory is only the default repository root, so
+ * users do not conclude that the tunnel itself must run from the repository
+ * directory.
+ */
+export function quickstartRepositoryNotice(resolvedRoot: string): string[] {
+  return [
+    "No repository path supplied — using the current directory as the approved repository:",
+    "",
+    `  ${resolvedRoot}`,
+    "",
+    "Tip: RepoRelay can be launched from anywhere by passing the repository path:",
+    "",
+    "  reporelay quickstart \"/path/to/your-project\"",
+    "",
+    "Only this default depends on the current directory.",
+    "Once configured, the tunnel commands work from any directory.",
+  ];
 }
 
 async function runQuickstart(args: string[]): Promise<void> {
   const parsed = parseQuickstartArgs(args);
+  if (!parsed.repositoryRootProvided) {
+    for (const line of quickstartRepositoryNotice(resolve(parsed.repositoryRoot))) console.log(line);
+    console.log("");
+  }
   const runtime = await startQuickstart({
     repositoryRoot: resolve(parsed.repositoryRoot),
     port: parsed.port,
@@ -263,7 +291,7 @@ function printQuickstartSummary(summary: QuickstartSummary): void {
   console.log("MCP");
   console.log("✓ Bridge running");
   console.log("✓ Security checks passed");
-  console.log("✓ Tool surface verified");
+  console.log(`✓ Tool surface verified (${summary.tools.length} tools${summary.handoffWrites ? "" : " — read-only mode"})`);
   console.log("");
   console.log("Ready.");
   console.log("");
@@ -274,6 +302,7 @@ function printQuickstartSummary(summary: QuickstartSummary): void {
   if (handoffChanges) console.log(`Handoff files: ${handoffChanges}`);
   if (summary.handoffInit.agentsBackupPath) console.log(`AGENTS.md backup: ${summary.handoffInit.agentsBackupPath}`);
   console.log("Next: connect ChatGPT Web through an OpenAI Secure MCP Tunnel.");
+  console.log(`When ChatGPT Scan Tools runs, expect exactly ${summary.tools.length} tools${summary.handoffWrites ? "" : " in this read-only mode"}.`);
   console.log("Guide: https://github.com/Lukie-81/RepoRelay#quick-setup");
   console.log("Press Ctrl+C to stop.");
 }

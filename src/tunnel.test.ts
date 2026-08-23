@@ -430,7 +430,34 @@ const credentialFailResult = await setupTunnel({
 });
 assert.equal(credentialFailResult.doctorPassed, false, "a rejected runtime key must fail the connection test");
 assert.ok(credentialFailOutput.some((line) => line.includes("runtime credential or tunnel ID was not accepted")));
+assert.ok(credentialFailOutput.some((line) => line.includes("ChatGPT workspace you intend to use")));
+assert.ok(credentialFailOutput.some((line) => line.includes("organization/project context")));
+assert.ok(credentialFailOutput.some((line) => line.includes("Tunnels Read + Use")));
 assert.ok(credentialFailOutput.some((line) => line.includes("Setup was saved, but the connection test did not pass.")));
+
+const tunnelNotFoundRoot = join(fixtureRoot, "tunnel-not-found");
+const tunnelNotFoundEnv = { ...process.env, REPORELAY_CONFIG_DIR: tunnelNotFoundRoot };
+const tunnelNotFoundPaths = getTunnelPaths(tunnelNotFoundEnv);
+await ensureQuickstartBridgeSecret(tunnelNotFoundPaths.bridgeSecretFile);
+const tunnelNotFoundOutput: string[] = [];
+const tunnelNotFoundResult = await setupTunnel({
+  env: tunnelNotFoundEnv,
+  tunnelId,
+  runtimeApiKey,
+  interactive: false,
+  output: (line) => tunnelNotFoundOutput.push(line),
+  download: async () => hostArchive.zip,
+  verify: verifyAgainstArchive,
+  fetchImpl: okFetch,
+  runCommand: async (_executable, args) => {
+    if (args[0] === "admin") return { exitCode: 1, stdout: "request GET /v1/tunnels/tunnel_... failed: 404 not found", stderr: "" };
+    return { exitCode: 0, stdout: "doctor passed", stderr: "" };
+  },
+});
+assert.equal(tunnelNotFoundResult.doctorPassed, false, "an unknown tunnel ID must fail the connection test");
+assert.ok(tunnelNotFoundOutput.some((line) => line.includes("could not find this tunnel")));
+assert.ok(tunnelNotFoundOutput.some((line) => line.includes("ChatGPT workspace you intend to use")));
+assert.ok(tunnelNotFoundOutput.some((line) => line.includes("organization/project context")));
 
 const credentialNetworkRoot = join(fixtureRoot, "credential-network");
 const credentialNetworkEnv = { ...process.env, REPORELAY_CONFIG_DIR: credentialNetworkRoot };
@@ -798,6 +825,21 @@ assert.equal(doctorFailed, false);
 assert.ok(failedDoctorOutput.some((line) => line.includes("Start RepoRelay")));
 assert.ok(failedDoctorOutput.some((line) => line.includes("--verbose")));
 assert.equal(failedDoctorOutput.some((line) => line.includes("connection refused")), false, "raw diagnostics must not leak to non-verbose output");
+
+const credentialDoctorOutput: string[] = [];
+const credentialDoctorFailed = await doctorTunnel({
+  env: firstEnv,
+  output: (line) => credentialDoctorOutput.push(line),
+  runCommand: async (_executable, args) => {
+    if (args[0] === "admin") return { exitCode: 1, stdout: "request failed: 403 forbidden", stderr: "" };
+    return { exitCode: 0, stdout: "doctor passed", stderr: "" };
+  },
+});
+assert.equal(credentialDoctorFailed, false, "the doctor must fail when the control plane rejects the credential");
+assert.ok(credentialDoctorOutput.some((line) => line.includes("runtime credential or tunnel ID was not accepted")));
+assert.ok(credentialDoctorOutput.some((line) => line.includes("ChatGPT workspace you intend to use")));
+assert.ok(credentialDoctorOutput.some((line) => line.includes("organization/project context")));
+assert.ok(credentialDoctorOutput.some((line) => line.includes("rerun `reporelay tunnel doctor`")));
 
 // ---- runTunnel uses the RepoRelay-managed executable ------------------------
 
