@@ -58,6 +58,21 @@ jobs:
           REPORELAY_ALLOWED_HOSTS: 127.0.0.1
         run: node dist/cli.js doctor
 
+      # Exercises the published install path (npm package bin resolution),
+      # which a macOS user hit after a non-npm global install left `reporelay`
+      # off PATH. Runs on every matrix OS, including macOS.
+      - name: Verify global package CLI resolution
+        shell: bash
+        run: |
+          npm pack --pack-destination "$RUNNER_TEMP"
+          npm install -g "$RUNNER_TEMP"/reporelay-mcp-*.tgz
+          installed="$(reporelay --version)"
+          expected="$(node -p "require('./package.json').version")"
+          if [ "$installed" != "$expected" ]; then
+            echo "::error::reporelay --version returned '$installed', expected '$expected'"
+            exit 1
+          fi
+
   site:
     name: Verify GitHub Pages site
     runs-on: ubuntu-latest
