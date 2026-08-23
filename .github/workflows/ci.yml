@@ -57,3 +57,31 @@ jobs:
           REPORELAY_BRIDGE_SECRET: "reporelay-ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}"
           REPORELAY_ALLOWED_HOSTS: 127.0.0.1
         run: node dist/cli.js doctor
+
+  site:
+    name: Verify GitHub Pages site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main source
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Checkout GitHub Pages source
+        uses: actions/checkout@v4
+        with:
+          repository: Lukie-81/RepoRelay
+          ref: gh-pages
+          path: site
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+
+      - name: Audit site metadata and source facts
+        working-directory: source
+        env:
+          REPORELAY_SITE_ROOT: ${{ github.workspace }}/site
+          REPORELAY_SOURCE_ROOT: ${{ github.workspace }}/source
+        run: npm run seo:audit

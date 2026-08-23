@@ -19,6 +19,12 @@ without giving it control of the rest of your computer.</p>
 </p>
 
 <p align="center">
+  <a href="https://lukie-81.github.io/RepoRelay/">Website</a> &middot;
+  <a href="https://www.npmjs.com/package/reporelay-mcp">npm package</a> &middot;
+  <a href="https://mcpservers.org/servers/lukie-81/reporelay">MCP listing</a>
+</p>
+
+<p align="center">
   <img src="docs/assets/reporelay-hero.png" width="720" alt="RepoRelay architecture: an authenticated AI reviewer reaches the loopback bridge, which exposes bounded read and search access to one approved repository and fixed handoff writers for a separate implementer.">
 </p>
 
