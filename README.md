@@ -95,6 +95,7 @@ carries ChatGPT traffic to your computer.
 
 ```text
 ✓ inspect files          open_workspace, list_files, read_file
+✓ find instructions      list_files with instructionsOnly
 ✓ search the repository  search_files
 ✓ write to three predetermined handoff targets
                          write_next_task, write_review, update_handoff_state
@@ -131,17 +132,19 @@ workspace:
 | **Read-only** | `reporelay quickstart "<repo>" --no-handoff-writes` | **4** |
 | **Handoff** (default) | `reporelay quickstart "<repo>"` | **7** |
 
-- **Personal ChatGPT plans, including Pro:** use **read-only mode**. ChatGPT
-  can open, read, and search the repository, but cannot write handoff files.
-  Expect **4 tools**.
+- **Personal ChatGPT workspaces:** if developer mode and the **Tunnel**
+  connection are available for your account, start with **read-only mode**.
+  ChatGPT can open, read, and search the repository, but cannot write handoff
+  files. Expect **4 tools**.
 - **Business / Enterprise / Edu workspaces:** available capabilities depend on
   your plan and workspace/admin settings. Where developer features and
   handoffs are enabled, the normal setup exposes **7 tools** (4 read/search +
   3 fixed handoff writers).
 
 Both modes share the same security boundary; read-only mode simply disables
-the three handoff writers. OpenAI plan and workspace behavior changes over
-time, so treat this as guidance and check the current
+the three handoff writers. RepoRelay cannot enable ChatGPT developer mode or
+tunnel access. OpenAI plan and workspace behavior changes over time, so check
+the current
 [OpenAI Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
 for what your account offers.
 
@@ -256,8 +259,9 @@ reviews for a separate local coding agent:
 AGENTS.md
 ```
 
-Using read-only mode instead (`--no-handoff-writes`, the recommended mode for
-personal ChatGPT plans)? RepoRelay exposes the 4 read/search tools and creates
+Using read-only mode instead (`--no-handoff-writes`, the recommended starting
+mode for personal ChatGPT workspaces that expose developer mode and Tunnel)?
+RepoRelay exposes the 4 read/search tools and creates
 none of these files. See [Read-only mode](#read-only-mode---no-handoff-writes).
 
 **Why does RepoRelay create these?** ChatGPT still cannot run commands, use
@@ -488,6 +492,15 @@ Search the repository for "authentication".
 ```
 
 ```text
+Find every AGENTS.md and CLAUDE.md instruction file before reviewing code.
+```
+
+RepoRelay handles that request through the existing `list_files` tool with
+`instructionsOnly: true`. This recursively discovers recognized instruction
+files without adding a broader filename-glob tool or changing the four-tool
+read-only surface.
+
+```text
 Review src/server.ts for error-handling issues and write your findings.
 ```
 
@@ -608,10 +621,10 @@ status without printing secret values.
 
 ## Read-only mode (--no-handoff-writes)
 
-Read-only mode is the recommended workflow for **personal ChatGPT plans,
-including Pro** (see [Which mode should I use?](#which-mode-should-i-use)),
-and for anyone who wants ChatGPT to **inspect only** &mdash; no handoff files,
-no writes at all:
+Read-only mode is the recommended starting workflow for **personal ChatGPT
+workspaces where developer mode and Tunnel are available** (see
+[Which mode should I use?](#which-mode-should-i-use)), and for anyone who wants
+ChatGPT to **inspect only** &mdash; no handoff files, no writes at all:
 
 ```bash
 reporelay quickstart "$HOME/Projects/my-app" --no-handoff-writes

@@ -32,8 +32,9 @@ starts the loopback server, and checks missing/wrong authentication plus the
 exact tool surface.
 
 The default quickstart exposes exactly 7 tools (4 inspection + 3 fixed handoff
-writers). The read-only mode — recommended for personal ChatGPT plans,
-including Pro — exposes exactly 4 tools and leaves the repository unchanged:
+writers). The read-only mode — the recommended starting mode for personal
+ChatGPT workspaces where developer mode and Tunnel are available — exposes
+exactly 4 tools and leaves the repository unchanged:
 
 ```bash
 reporelay quickstart "$HOME/Projects/approved-repository" --no-handoff-writes

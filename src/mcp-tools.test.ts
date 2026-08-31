@@ -17,6 +17,9 @@ const outsideMarker = `outside-${randomUUID()}`;
 await mkdir(join(workspaceRoot, ".ai-handoff"), { recursive: true });
 await mkdir(outsideRoot, { recursive: true });
 await writeFile(join(workspaceRoot, "inside.txt"), "inside marker\n", "utf8");
+await writeFile(join(workspaceRoot, "AGENTS.md"), "root instructions\n", "utf8");
+await mkdir(join(workspaceRoot, "packages", "backend"), { recursive: true });
+await writeFile(join(workspaceRoot, "packages", "backend", "CLAUDE.md"), "backend instructions\n", "utf8");
 await writeFile(join(outsideRoot, "outside.txt"), outsideMarker, "utf8");
 await writeFile(join(workspaceRoot, ".ai-handoff", "NEXT_TASK.md"), "next\n", "utf8");
 await writeFile(join(workspaceRoot, ".ai-handoff", "REVIEW.md"), "review\n", "utf8");
@@ -59,6 +62,14 @@ try {
   const opened = structured(await readOnly.client.callTool({ name: "open_workspace", arguments: { path: workspaceRoot } }));
   const workspaceId = String(opened.workspaceId);
   assert.equal(structured(await readOnly.client.callTool({ name: "read_file", arguments: { workspaceId, path: "inside.txt" } })).result, "inside marker\n");
+  assert.equal(
+    structured(await readOnly.client.callTool({ name: "list_files", arguments: { workspaceId, instructionsOnly: true } })).result,
+    "file\tAGENTS.md\nfile\tpackages/backend/CLAUDE.md",
+  );
+  assert.equal(
+    structured(await readOnly.client.callTool({ name: "list_files", arguments: { workspaceId, path: "packages", instructionsOnly: true } })).result,
+    "file\tpackages/backend/CLAUDE.md",
+  );
   for (const path of ["../outside/outside.txt", join(outsideRoot, "outside.txt"), "escape/outside.txt", ".ai-handoff/RESULT.md"]) {
     const result = await readOnly.client.callTool({ name: "read_file", arguments: { workspaceId, path } });
     if (path.endsWith("RESULT.md")) assert.equal(result.isError, undefined);

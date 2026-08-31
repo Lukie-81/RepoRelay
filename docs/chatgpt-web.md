@@ -55,8 +55,9 @@ reporelay quickstart "$HOME/Projects/my-app"
 ```
 
 Keep this terminal open. The normal quickstart has **seven tools**. If you
-chose read-only mode instead — recommended for personal ChatGPT plans,
-including Pro — add `--no-handoff-writes`; that mode has exactly four tools:
+chose read-only mode instead — the recommended starting mode for personal
+ChatGPT workspaces where developer mode and Tunnel are available — add
+`--no-handoff-writes`; that mode has exactly four tools:
 
 ```text
 open_workspace

@@ -3,6 +3,7 @@ import { link, mkdir, mkdtemp, readFile, realpath, symlink, writeFile } from "no
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
+  findReviewInstructionFiles,
   listReviewDirectory,
   readReviewTextFile,
   ReviewAccessDeniedError,
@@ -17,6 +18,11 @@ const outside = join(runRoot, "outside");
 await mkdir(join(workspace, ".ai-handoff"), { recursive: true });
 await mkdir(outside, { recursive: true });
 await writeFile(join(workspace, "inside.txt"), "inside marker\n", "utf8");
+await writeFile(join(workspace, "AGENTS.md"), "root instructions\n", "utf8");
+await mkdir(join(workspace, "packages", "backend"), { recursive: true });
+await writeFile(join(workspace, "packages", "backend", "CLAUDE.md"), "backend instructions\n", "utf8");
+await mkdir(join(workspace, "node_modules", "ignored"), { recursive: true });
+await writeFile(join(workspace, "node_modules", "ignored", "AGENTS.md"), "ignored instructions\n", "utf8");
 await writeFile(join(workspace, ".env"), "environment secret\n", "utf8");
 await mkdir(join(workspace, ".git"), { recursive: true });
 await writeFile(join(workspace, ".git", "config"), "[remote \"origin\"]\n", "utf8");
@@ -42,6 +48,8 @@ await assert.rejects(
 
 const listed = await listReviewDirectory(workspace, ".");
 assert.equal(listed.find((entry) => entry.path === "escape")?.type, "blocked-link");
+assert.deepEqual(await findReviewInstructionFiles(workspace), ["AGENTS.md", "packages/backend/CLAUDE.md"]);
+assert.deepEqual(await findReviewInstructionFiles(workspace, "packages"), ["packages/backend/CLAUDE.md"]);
 assert.equal((await searchReviewFiles(workspace, "outside marker")).length, 0);
 assert.equal((await searchReviewFiles(workspace, "inside marker"))[0]?.path, "inside.txt");
 

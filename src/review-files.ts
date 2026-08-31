@@ -232,8 +232,11 @@ export async function writeHandoffDocument(
   return relativePath;
 }
 
-export async function findReviewInstructionFiles(workspaceRoot: string): Promise<string[]> {
-  const files = await collectSafeFiles(workspaceRoot, ".");
+export async function findReviewInstructionFiles(
+  workspaceRoot: string,
+  inputPath = ".",
+): Promise<string[]> {
+  const files = await collectSafeFiles(workspaceRoot, inputPath);
   return files.filter((path) => {
     const name = basename(path).toUpperCase();
     return name === "AGENTS.MD" || name === "CLAUDE.MD";

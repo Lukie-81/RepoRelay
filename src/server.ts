@@ -11,7 +11,13 @@ import * as z from "zod/v4";
 import { assertRepoRelaySafety, loadConfig, type ServerConfig } from "./config.js";
 import { logEvent, requestIp, requestPath, sessionIdPrefix } from "./logger.js";
 import { McpSessionRegistry, type McpSessionCloseResult } from "./mcp-sessions.js";
-import { listReviewDirectory, readReviewTextFile, searchReviewFiles, writeHandoffDocument } from "./review-files.js";
+import {
+  findReviewInstructionFiles,
+  listReviewDirectory,
+  readReviewTextFile,
+  searchReviewFiles,
+  writeHandoffDocument,
+} from "./review-files.js";
 import { WorkspaceRegistry } from "./workspaces.js";
 
 type Transport = StreamableHTTPServerTransport;
@@ -70,16 +76,21 @@ export function registerRepoRelayTools(
     "list_files",
     {
       title: "List repository files",
-      description: "List a real directory inside the opened repository. Links and junctions are reported as blocked.",
+      description: "List a real directory inside the opened repository. Set instructionsOnly to recursively find safe AGENTS.md and CLAUDE.md files. Links and junctions are reported as blocked.",
       inputSchema: {
         workspaceId: z.string(),
         path: z.string().optional().describe("Repository-relative directory path. Defaults to the root."),
+        instructionsOnly: z.boolean().optional().describe("Recursively list only AGENTS.md and CLAUDE.md files under path."),
       },
       outputSchema: toolOutputSchema(),
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     },
-    async ({ workspaceId, path }) => {
+    async ({ workspaceId, path, instructionsOnly }) => {
       const workspace = workspaces.getWorkspace(workspaceId);
+      if (instructionsOnly) {
+        const files = await findReviewInstructionFiles(workspace.root, path ?? ".");
+        return textResult(files.map((file) => `file\t${file}`).join("\n") || "No instruction files found.");
+      }
       const entries = await listReviewDirectory(workspace.root, path ?? ".");
       return textResult(entries.map((entry) => `${entry.type}\t${entry.path}`).join("\n") || "Directory is empty.");
     },
